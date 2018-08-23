@@ -1,0 +1,14 @@
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\bin\Release\HBPlatForm.exe.config
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\obj\x86\Release\GRPlatForm.AudioPlay.resources
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\obj\x86\Release\GRPlatForm.AudioPlayer.resources
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\obj\x86\Release\GRPlatForm.ComSetForm.resources
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\obj\x86\Release\GRPlatForm.EBMInfo.resources
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\obj\x86\Release\GRPlatForm.InfoSetForm.resources
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\obj\x86\Release\GRPlatForm.frmLogin.resources
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\obj\x86\Release\GRPlatForm.mainForm.resources
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\obj\x86\Release\GRPlatForm.Properties.Resources.resources
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\obj\x86\Release\GRPlatForm.ServerForm.resources
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\obj\x86\Release\GRPlatForm.ServerIPSetForm.resources
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\obj\x86\Release\GRPlatForm.ServerSetForm.resources
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\obj\x86\Release\GRPlatForm.TmpFolderSetForm.resources
+D:\交接20171120郭宇航交接\对接2017910\丹阳对接2017-9-20\trunk\GRPlatForm\obj\x86\Release\AHGRPlatForm.csproj.GenerateResource.Cache
