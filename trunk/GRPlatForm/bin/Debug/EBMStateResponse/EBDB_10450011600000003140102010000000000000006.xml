@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<EBD xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <EBDVersion>1.0</EBDVersion>
+  <EBDID>10450011600000001010101010000000000000001</EBDID>
+  <EBDType>EBMStateResponse</EBDType>
+  <SRC>
+    <EBRID>45001160000000314010201</EBRID>
+  </SRC>
+  <EBDTime>2018-08-30 00:18:25</EBDTime>
+  <EBMStateResponse>
+    <RptTime>2018-08-30 00:18:25</RptTime>
+    <EBM>
+      <EBMID>450011600000001010101012018080001</EBMID>
+    </EBM>
+    <BrdStateCode>3</BrdStateCode>
+    <BrdStateDesc>播放完成</BrdStateDesc>
+    <Coverage>
+      <CoverageRate>1</CoverageRate>
+      <AreaCode>500116005011</AreaCode>
+      <ResBrdStat>1,1,1,1</ResBrdStat>
+    </Coverage>
+  </EBMStateResponse>
+</EBD>

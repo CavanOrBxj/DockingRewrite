@@ -149,35 +149,15 @@ namespace GRPlatForm.AudioMessage.MQAudio
             rHeart.SourceName = ServerForm.strSourceName;
             rHeart.SourceID = ServerForm.strSourceID;
             rHeart.sHBRONO = ServerForm.strHBRONO;
-            //try
-            //{
-            //.HeartBeatResponse();  // rState.EBMStateResponse(ebd);
-            Random rd = new Random();
+           
             string fName = ServerForm.ebd.EBDID.ToString();
-
-            Random rdState = new Random();
+            
             string frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
             string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
-
-
-            //  string xmlEBMStateFileName = "\\EBDB_" + ebd.EBDID.ToString() + ".xml";
-            // string xmlSignFileName = "\\EBDI_" + ebd.EBDID.ToString() + ".xml";
-            //xmlHeartDoc = rHeart.EBMStateResponse(ebd, "EBMStateResponse", fName, BrdStateDesc, BrdStateCode);
-
             xmlHeartDoc = rHeart.EBMStateRequestResponse(ebdsr, fName, BrdStateDesc, BrdStateCode);
-            //string xmlStateFileName = "\\EBDB_000000000001.xml";
            TarXml.AudioResponseXml.CreateXML(xmlHeartDoc, ServerForm.sEBMStateResponsePath + xmlEBMStateFileName);
-            //  ServerForm.mainFrm.AudioGenerateSignatureFile(sEBMStateResponsePath, "EBDI",ebd.EBDID.ToString());
-            ServerForm.mainFrm.GenerateSignatureFile(ServerForm.sEBMStateResponsePath, frdStateName);
-
-            //string pp= frdStateName
             ServerForm.tar.CreatTar(ServerForm.sEBMStateResponsePath, ServerForm.sSendTarPath, frdStateName);// "HB000000000001");//使用新TAR
-            //}
-            //catch (Exception ec)
-            //{
-            //    Log.Instance.LogWrite("应急消息播发状态反馈组包错误：" + ec.Message);
-            //}
-            //string sHeartBeatTarName = sSendTarPath + "\\" + "HB000000000001" + ".tar";
+            
             string sHeartBeatTarName = ServerForm.sSendTarPath + "\\EBDT_" + frdStateName + ".tar";
             try
             {

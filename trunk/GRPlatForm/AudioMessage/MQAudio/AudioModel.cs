@@ -59,5 +59,6 @@ namespace GRPlatForm.AudioMessage.MQAudio
         public string MsgTitleNew { get; set; }
 
         public string EBMID { get; set; }
+        public string MsgDesc { get; set; }
     }
 }

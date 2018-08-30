@@ -88,12 +88,12 @@ namespace GRPlatForm
                         int nReturn = usb.USB_OpenDevice(ref phDeviceHandle);
                         if (nReturn != 0)
                         {
-                            MessageBox.Show("密码器打开失败！");
+                           // MessageBox.Show("密码器打开失败！");  注释于20180827
                         }
                     }
                     catch (Exception em)
                     {
-                        MessageBox.Show("密码器打开失败：" + em.Message);
+                        //  MessageBox.Show("密码器打开失败：" + em.Message);注释于20180827
                     }
                 }
 
@@ -107,11 +107,32 @@ namespace GRPlatForm
                 Log.Instance.logFileSplit = LogFileSplit.Daily;
                 Log.Instance.MaxFileSize = 2;
                 Log.Instance.InitParam();
+
+                InitData();
             }
             catch (Exception ex)
             {
 
                 MessageBox.Show(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// 区域对应码字典
+        /// </summary>
+        public void InitData()
+        {
+            string MediaSQL = "select ORG_ID,ORG_DETAIL,GB_CODE from Organization";
+            DataTable dtOrga =dba.getQueryInfoBySQL(MediaSQL);
+            if (dtOrga.Rows.Count>0)
+            {
+                foreach (DataRow item in dtOrga.Rows)
+                {
+                    OrganizationInfo tmp = new OrganizationInfo();
+                    tmp.ORG_DETAIL = item["ORG_DETAIL"].ToString();
+                    tmp.GB_CODE= item["GB_CODE"].ToString();
+                    SingletonInfo.GetInstance().DicOrganizationCode.Add(item["ORG_ID"].ToString(), tmp);
+                }
             }
         }
 

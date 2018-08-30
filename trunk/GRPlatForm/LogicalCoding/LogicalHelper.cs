@@ -29,7 +29,7 @@ namespace GRPlatForm.LogicalCoding
 
             if (number >99)
             {
-                HttpServerFrom.SetManager("资源已满，查看是否要进行变更",System.Drawing.Color.Red);
+                ServerForm.SetManager("资源已满，查看是否要进行变更",System.Drawing.Color.Red);
             }
            return   CombinationalLogicCode(logicalCode,number.ToString());
 
@@ -135,7 +135,7 @@ namespace GRPlatForm.LogicalCoding
             {
                 if (!UpdateLogicalCode(LogicalData.srvID, logicCode))
                 {
-                    HttpServerFrom.SetManager("更改逻辑编码失败", System.Drawing.Color.Red);
+                    ServerForm.SetManager("更改逻辑编码失败", System.Drawing.Color.Red);
                 }
                 return logicCode;
             }

@@ -8,6 +8,8 @@ using System.Threading;
 using System.IO;
 using System.Drawing;
 using GRPlatForm.AudioMessage.SendMQ;
+using System.Windows.Forms;
+using System.Threading.Tasks;
 
 namespace GRPlatForm.AudioMessage
 {
@@ -56,18 +58,19 @@ namespace GRPlatForm.AudioMessage
 
 
 
- 
-        public virtual AudioModel PlayReady(int type,string MQIns)
+
+        public virtual AudioModel PlayReady(int type, string MQIns)
         {
             try
             {
                 if (MoreTime())
                 {
+                    //已经过了播放时间 不处理
                     PlayStateInterface.Untreated(AudioModel.XmlFilaPath, "未处理", "0");
                 }
                 else
                 {
-                    bool res= false;
+                    bool res = false;
                     string MQInstruction = MQIns;
 
                     string AreaString = CombinationArea();
@@ -76,27 +79,39 @@ namespace GRPlatForm.AudioMessage
                     if (!string.IsNullOrEmpty(TsCmd_ValueID))
                     {
                         string result = InsertTsCmdStore(TsCmd_ValueID, AreaString, MQInstruction, AudioModel.PlayingTime.ToString(), AudioModel.PlayEndTime.ToString());
+
+                        if (SingletonInfo.GetInstance().DicTsCmd_ID.ContainsKey(AreaString))
+                        {
+                            SingletonInfo.GetInstance().DicTsCmd_ID.Remove(AreaString);
+                        }
+                        SingletonInfo.GetInstance().DicTsCmd_ID.Add(AreaString, result);
                         if (!string.IsNullOrEmpty(result))
                         {
                             Thread thread;
-
-
-                            Random rd = new Random();
-                        
-                           string uuid= GetThreadUid(rd.Next(1000, 9999).ToString());
+                            string uuid = Guid.NewGuid().ToString("N");
                             thread = new Thread(delegate () {
-                               AudioPlay(type, MQInstruction, result, TsCmd_ValueID);
-                             
-                                }
+                                AudioPlay(type, MQInstruction, result, TsCmd_ValueID);
+
+                            }
                             );
-                            th.Add(uuid,thread);
+
+                            SingletonInfo.GetInstance().DicPlayingThread[AudioModel.AeraCodeReal].Add(thread);
+                            thread.IsBackground = true;
                             thread.Start();
                             while (true)
                             {
-                                Thread.Sleep(1000);
+                                Thread.Sleep(200);
                                 if (thread.ThreadState == ThreadState.Stopped)
                                 {
                                     thread.Abort();
+                                    GC.Collect();
+                                  //  Application.DoEvents();
+                                    // th.Remove(uuid);
+                                    if (SingletonInfo.GetInstance().DicPlayingThread.ContainsKey(AudioModel.AeraCodeReal))
+                                    {
+                                        SingletonInfo.GetInstance().DicPlayingThread.Remove(AudioModel.AeraCodeReal);
+                                        ServerForm.SetManager("播放过程线程stopped，DicPlayingThread中的字典被清理", Color.Green);
+                                    }
                                     break;
                                 }
                             }
@@ -106,23 +121,17 @@ namespace GRPlatForm.AudioMessage
             }
             catch (Exception ex)
             {
-                return AudioModel;
+             //  MessageBox.Show("DicPlayingThread.count:"+SingletonInfo.GetInstance().DicPlayingThread.Count.ToString() + ","+ ex.Message+ex.StackTrace);//  测试注释
+               // return AudioModel;
             }
             return null;
         }
 
-        public string GetThreadUid(string uuid)
-        {
-            if (th.ContainsKey(uuid))
-            {
-                Random rd = new Random();
-                return GetThreadUid(rd.Next(1000, 9999).ToString());
-            }
-            else
-            {
-                return uuid;
-            }
-        }
+    
+        /// <summary>
+        ///已经过了播放时间   当前时间大于播放时间的情况为true
+        /// </summary>
+        /// <returns></returns>
         public virtual bool MoreTime()
         {
             if (Convert.ToDateTime(AudioModel.PlayEndTime) < DateTime.Now)
@@ -164,9 +173,9 @@ namespace GRPlatForm.AudioMessage
                 ServerForm.SetManager("EBM开始时间: " + AudioModel.PlayingTime + "===>EBM结束时间: " + AudioModel.PlayEndTime, Color.Green);
                 ServerForm.SetManager("播放开始时间: " + AudioModel.PlayingTime + "===>播放结束时间: " + AudioModel.PlayEndTime, Color.Green);
                 ServerForm.SetManager("等待播放"+AudioModel.PlayingContent, Color.Green);
-                //          ServerForm.SetManager("111111111111111111111111",Color.GreenYellow);
+               
                 EBD ebd = GetEBD(AudioModel.XmlFilaPath);
-
+                string AreaString = CombinationArea();
                 ///未播放
                 AudioPlayState = AudioMessage.AudioPlayState.NotPlay;
                 lock (ServerForm.PlayBackObject)
@@ -174,10 +183,16 @@ namespace GRPlatForm.AudioMessage
                     ServerForm.PlayBack = ServerForm.PlaybackStateType.NotBroadcast;
                 }
 
-
-
                 #region 未播放
-                PlayStateInterface.NotPlay(TsCmd_ID, AudioModel.XmlFilaPath, "未播放", "1");
+
+                Task.Factory.StartNew(() =>
+                {
+                    PlayStateInterface.NotPlay(TsCmd_ID, AudioModel.XmlFilaPath, "未播放", "1");
+                    ServerForm.SetManager("反馈未播放状态", Color.Green);
+                });
+
+             
+
                 #endregion 未播放代码
                 //播放中
                 #region 播放中
@@ -185,10 +200,10 @@ namespace GRPlatForm.AudioMessage
                 while (true)
                 {
                     DateTime current = DateTime.Now;
-                    Thread.Sleep(500);
-                    if (DateTime.Compare(current, AudioModel.PlayingTime) > 0)
+                    Thread.Sleep(1000);
+                    if (DateTime.Compare(current, AudioModel.PlayingTime) > 0)//当前时间大于播放开始时间
                     {
-                        ServerForm.SetManager("播放开始", Color.Green);
+                        ServerForm.SetManager("播放开始："+ DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), Color.Green);
                         lock (ServerForm.PlayBackObject)
                         {
                             ServerForm.PlayBack = ServerForm.PlaybackStateType.Playback;
@@ -198,7 +213,17 @@ namespace GRPlatForm.AudioMessage
                        // MqSendOrder sendOrder = new MqSendOrder();
                         bool result = SendMQ.MqSendOrder.sendOrder.SendMq(ebd, type, ParamValue, TsCmd_ID, TsCmd_ValueID);
 
-                        PlayStateInterface.Playing(TsCmd_ID, AudioModel.XmlFilaPath, "播放中", "2", "播发中");
+
+                        Task.Factory.StartNew(() =>
+                        {
+                            PlayStateInterface.Playing(TsCmd_ID, AudioModel.XmlFilaPath, "播放中", "2", "播发中");
+                            ServerForm.SetManager("反馈播发中状态", Color.Green);
+                        });
+
+
+
+                        ServerForm.SetManager("播放中的反馈已发送", Color.Green);
+
                         break;
                     }
                 }
@@ -206,11 +231,12 @@ namespace GRPlatForm.AudioMessage
                 //播放完成
                 #region 播放完
 
+                ServerForm.SetManager("进入等待播放完成流程", Color.Green);
+               
                 while (true)
                 {
-
-                    Thread.Sleep(500);
-
+                    Thread.Sleep(1000);
+                   // ServerForm.SetManager("未到结束时间在播放过程中："+tmp.ToString(), Color.Green);
                     if (DateTime.Compare(DateTime.Now, AudioModel.PlayEndTime)< 0)//结束时间大于当前时间  
                     {
 
@@ -218,28 +244,63 @@ namespace GRPlatForm.AudioMessage
 
                         //  MediaSql = "select top(1)TsCmd_ID,TsCmd_XmlFile from  TsCmdStore where TsCmd_ValueID = '" + ebd.EBMStateRequest.EBM.EBMID + "' order by TsCmd_Date desc";
                         DataTable dtMedia = mainForm.dba.getQueryInfoBySQL(MediaSql);
-                        if (dtMedia.Rows[0]["TsCmd_ExCute"].ToString().Contains("播放完毕"))
+
+                        if (dtMedia!=null && dtMedia.Rows.Count>0)
                         {
-                            ServerForm.SetManager("播放结束", Color.Green);
-                            lock (ServerForm.PlayBackObject)
+                            if (dtMedia.Rows[0]["TsCmd_ExCute"].ToString().Contains("播放完毕"))
                             {
-                                ServerForm.PlayBack = ServerForm.PlaybackStateType.PlayOut;
+                                ServerForm.SetManager("播放结束", Color.Green);
+                                lock (ServerForm.PlayBackObject)
+                                {
+                                    ServerForm.PlayBack = ServerForm.PlaybackStateType.PlayOut;
 
+                                }
+                                AudioPlayState = AudioMessage.AudioPlayState.PlayingOver;
+
+                                Task.Factory.StartNew(() =>
+                                {
+                                    PlayStateInterface.PlayOver(TsCmd_ID, AudioModel.XmlFilaPath, "播放完成", "3", "开机/运行中");
+                                    ServerForm.SetManager("反馈播放完成状态", Color.Green);
+                                });
+
+                              
+
+
+                                if (SingletonInfo.GetInstance().DicTsCmd_ID.ContainsKey(AreaString))
+                                {
+
+                                    SingletonInfo.GetInstance().DicTsCmd_ID.Remove(AreaString);
+                                }
+
+                                if (SingletonInfo.GetInstance().DicPlayingThread.ContainsKey(AudioModel.AeraCodeReal))
+                                {
+                                    SingletonInfo.GetInstance().DicPlayingThread.Remove(AudioModel.AeraCodeReal);
+                                    MessageBox.Show("文件播放完了->删除" + AudioModel.AeraCodeReal + "的字典值");
+                                }
+
+                                break;
                             }
-                            AudioPlayState = AudioMessage.AudioPlayState.PlayingOver;
-                            PlayStateInterface.PlayOver(TsCmd_ID, AudioModel.XmlFilaPath, "播放完成", "3", "开机/运行中");
-
-                            break;
                         }
                     }
 
                     else
                     {
+                       
                         lock (ServerForm.PlayBackObject)
                         {
                             ServerForm.PlayBack = ServerForm.PlaybackStateType.PlayOut;
                         }
                         ServerForm.SetManager("播放结束", Color.Green);
+
+                        Task.Factory.StartNew(() =>
+                        {
+                            PlayStateInterface.PlayOver(TsCmd_ID, AudioModel.XmlFilaPath, "播放完成", "3", "开机/运行中");
+                            ServerForm.SetManager("反馈播放完成状态", Color.Green);
+                        });
+
+
+
+
                         //没播放完 但是文件时间到了
                         string strSql = "";
                         if (type == 1)
@@ -254,7 +315,17 @@ namespace GRPlatForm.AudioMessage
                             strSql = string.Format("update PLAYRECORD set PR_REC_STATUS = '{0}' ", "删除");
                             mainForm.dba.UpdateDbBySQL(strSql);
                         }
+                        
+                        if (SingletonInfo.GetInstance().DicTsCmd_ID.ContainsKey(AreaString))
+                        {
+                            SingletonInfo.GetInstance().DicTsCmd_ID.Remove(AreaString);
+                        }
 
+                        if (SingletonInfo.GetInstance().DicPlayingThread.ContainsKey(AudioModel.AeraCodeReal))
+                        {
+                            SingletonInfo.GetInstance().DicPlayingThread.Remove(AudioModel.AeraCodeReal);
+                            MessageBox.Show("播放时间到了->删除"+ AudioModel.AeraCodeReal+"的字典值");
+                        }
                         break;
                     }
                 }
@@ -266,7 +337,7 @@ namespace GRPlatForm.AudioMessage
             catch (Exception ex)
             {
                 AudioPlayState = AudioMessage.AudioPlayState.error;
-                Log.Instance.LogWrite(ex.Message);
+             //   MessageBox.Show(ex.Message + ex.StackTrace);
             }
             return false;
         }

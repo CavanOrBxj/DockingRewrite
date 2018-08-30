@@ -16,6 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml;
+using static GRPlatForm.model.EnumClass;
 
 
 namespace GRPlatForm
@@ -157,10 +158,25 @@ namespace GRPlatForm
         DateTime ccplayerStopTime = DateTime.Now.AddSeconds(-50);
 
         System.Timers.Timer t = new System.Timers.Timer(30000);//心跳
-        System.Timers.Timer tSrvState = new System.Timers.Timer(600000); //终端状态
+        /// <summary>
+        /// 终端状态定时器
+        /// </summary>
+        System.Timers.Timer tSrvState = new System.Timers.Timer(150000); //终端状态
+        /// <summary>
+        /// 平台状态定时器
+        /// </summary>
         System.Timers.Timer tTerraceState = new System.Timers.Timer(30000); //平台状态
-        System.Timers.Timer tSrvInfo = new System.Timers.Timer(180000);  //终端信息
+        /// <summary>
+        /// 终端信息定时器
+        /// </summary>
+        System.Timers.Timer tSrvInfo = new System.Timers.Timer(100000);  //终端信息
+        /// <summary>
+        /// 平台信息定时器
+        /// </summary>
         System.Timers.Timer tTerraceInfrom = new System.Timers.Timer(180000);  //平台信息
+
+        System.Timers.Timer tPlayRecording = new System.Timers.Timer(120000);//播放记录
+
         System.Timers.Timer InfromActiveTime = new System.Timers.Timer(30000);
         System.Timers.Timer Tccplayer = new System.Timers.Timer(1000);
         private int NUMInfrom = 0;
@@ -176,6 +192,7 @@ namespace GRPlatForm
         public static FullDelegate.SetTextDelete SetManager;
 
         public static Dictionary<string, model.EBRPSS> EbrpssInfo = new Dictionary<string, model.EBRPSS>();
+
         public enum PlaybackStateType
         {
             NotBroadcast,
@@ -197,7 +214,7 @@ namespace GRPlatForm
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message + "PlayM");
+                MessageBox.Show(ex.Message);
             }
         }
 
@@ -209,6 +226,13 @@ namespace GRPlatForm
                 txtServerPort.Enabled = false;
                 if (MQStartFlag)
                     FindUserInfo("admin");
+
+
+                tSrvInfo.Enabled = true;
+               
+                tSrvState.Enabled = true;
+
+               tPlayRecording.Enabled = true;
             }
             else
             {
@@ -251,9 +275,13 @@ namespace GRPlatForm
                 tSrvState.Enabled = false;
                 t.Enabled = false;
 
+                tPlayRecording.Enabled = false;
+
                 return;
                 #endregion End
             }
+
+
             if (txtServerPort.Text.Trim() != "")
             {
                 if (int.TryParse(txtServerPort.Text, out iServerPort))
@@ -554,6 +582,10 @@ namespace GRPlatForm
             InfromActiveTime.Elapsed += new System.Timers.ElapsedEventHandler(InfromActive);
             InfromActiveTime.AutoReset = true;
 
+
+            tPlayRecording.Elapsed += new System.Timers.ElapsedEventHandler(PlayRecordingTT);
+            tPlayRecording.AutoReset = true;
+
             bool FirstService = Convert.ToBoolean(serverini.ReadValue("FIRST", "FirstService"));
             if (FirstService)
             {
@@ -571,6 +603,7 @@ namespace GRPlatForm
             if (!SingletonInfo.GetInstance().PlatformInformationFirst)
             {
                 button1.PerformClick();
+                button3.PerformClick();
                 serverini.WriteValue("FIRST", "PlatformInformationFirst", "true");
                 SingletonInfo.GetInstance().PlatformInformationFirst = true;
             }
@@ -579,13 +612,6 @@ namespace GRPlatForm
 
         private void InfromActive(object source, System.Timers.ElapsedEventArgs e)
         {
-            NUMInfrom++;
-            if (NUMInfrom > 4)
-            {
-                NUMInfrom = 1;
-            }
-
-            //ServerForm.DeleteFolder(ServerForm.strCurrency);//删除原有XML发送文件的文件夹下的XML
             #region 运维请求反馈
             string strOMDType = ReturnInfrom(NUMInfrom);//
             if (strOMDType != "")
@@ -985,6 +1011,7 @@ namespace GRPlatForm
                                                 }
                                                 else
                                                 {
+                                                    //有两种情况 停播 文转语
                                                     ebd.EBM.MsgContent.Auxiliary = new Auxiliary();
                                                     ebd.EBM.MsgContent.Auxiliary.AuxiliaryType = "3";
                                                     strAuxiliaryType = "3";
@@ -1010,45 +1037,100 @@ namespace GRPlatForm
                                             #endregion
 
 
-                                            if ((EBMVerifyState || RealAudioFlag) && strMsgType == "2")//实时流在播发时的停止
+                                            //  if ((EBMVerifyState || RealAudioFlag) && strMsgType == "2")//实时流在播发时的停止
+                                            if (strMsgType == "2")
                                             {
                                                 //推流播放，取消播放
-                                                if (strMsgType == "2" && PlayType == "1")
+                                                if (strMsgType == "2" && PlayType == "1" && ebd.EBM.MsgContent.Auxiliary.AuxiliaryDesc != "文本转语")
                                                 {
                                                     SetText("停止播发：" + DateTime.Now.ToString(), Color.Red);
                                                     string strSql = string.Format("update PLAYRECORD set PR_REC_STATUS = '{0}' where PR_SourceID='{1}'", "删除", TsCmdStoreID);
                                                     strSql += " update EBMInfo set EBMState=1 where SEBDID='" + SEBDIDStatusFlag + "' ";
                                                     strSql += "delete from InfoVlaue";
+                                                    //string strSql = "update PLAYRECORD set PR_REC_STATUS = '删除'";
                                                     mainForm.dba.UpdateDbBySQL(strSql);
                                                     Tccplayer.Enabled = false;
                                                     ccplay.StopCPPPlayer2();
                                                     RealAudioFlag = false;//标记为已经执行
-                                                    lDealTarFiles.RemoveAt(0);//无论是否成功，都移除  先注释20180820
+                                                    lDealTarFiles.RemoveAt(0);//无论是否成功，都移除  先注释 20180820
                                                     continue;
+
+                                                }
+
+                                                if (strMsgType == "2" && PlayType == "1" && ebd.EBM.MsgContent.Auxiliary.AuxiliaryDesc == "文本转语")
+                                                {
+                                                    string AreaString = CombinationArea(ebd.EBM.MsgContent.AreaCode.Split(','));
+                                                    SetText("停止播发：" + DateTime.Now.ToString(), Color.Red);
+                                                    string PR_SourceID = SingletonInfo.GetInstance().DicTsCmd_ID[AreaString];
+
+                                                    string strSql = string.Format("update PLAYRECORD set PR_REC_STATUS = '{0}' where PR_SourceID='{1}'", "删除", PR_SourceID);
+                                                    strSql += " update EBMInfo set EBMState=1 where SEBDID='" + SEBDIDStatusFlag + "' ";
+                                                    strSql += "delete from InfoVlaue";
+
+                                                    mainForm.dba.UpdateDbBySQL(strSql);
+                                                    Tccplayer.Enabled = false;
+                                                    ccplay.StopCPPPlayer2();
+                                                    RealAudioFlag = false;//标记为已经执行
+                                                    if (SingletonInfo.GetInstance().DicTsCmd_ID.ContainsKey(AreaString))
+                                                    {
+                                                        SingletonInfo.GetInstance().DicTsCmd_ID.Remove(AreaString);
+                                                    }
+                                                    #region 清屏
+                                                    string TsCmd_ValueID = GetTmcValue(AreaString);
+                                                    SendMQOrderClearLED(TsCmd_ValueID);
+
+                                                    if (SingletonInfo.GetInstance().DicPlayingThread.ContainsKey(ebd.EBM.MsgContent.AreaCode))
+                                                    {
+                                                        foreach (var item in SingletonInfo.GetInstance().DicPlayingThread[ebd.EBM.MsgContent.AreaCode])
+                                                        {
+                                                            item.Abort();
+                                                        }
+                                                        SingletonInfo.GetInstance().DicPlayingThread.Remove(ebd.EBM.MsgContent.AreaCode);
+                                                    }
+                                                    lDealTarFiles.RemoveAt(0);//无论是否成功，都移除  先注释 20180820
+                                                    break;
+                                                    #endregion
                                                 }
                                                 //本地播放，取消播放
                                                 if (strMsgType == "2" && PlayType == "2")
                                                 {
-                                                    SetText("停止播发：" + DateTime.Now.ToString(), Color.Red);
-                                                    string strSql = string.Format("update PLAYRECORD set PR_REC_STATUS = '{0}' where PR_SourceID='{1}'", "删除", TsCmdStoreID);
-                                                    strSql += " update EBMInfo set EBMState=1 where SEBDID='" + SEBDIDStatusFlag + "' ";
-                                                    strSql += "delete from InfoVlaue";
-                                                    mainForm.dba.UpdateDbBySQL(strSql);
-                                                    Tccplayer.Enabled = false;
-                                                    RealAudioFlag = false;//标记为已经执行
-                                                    lDealTarFiles.RemoveAt(0);//无论是否成功，都移除  先注释 20180820
-                                                    continue;
+                                                    string AreaString = CombinationArea(ebd.EBM.MsgContent.AreaCode.Split(','));
+                                                    if (SingletonInfo.GetInstance().DicTsCmd_ID.ContainsKey(AreaString))
+                                                    {
+                                                        SetText("停止播发：" + DateTime.Now.ToString(), Color.Red);
+                                                        string PR_SourceID = SingletonInfo.GetInstance().DicTsCmd_ID[AreaString];
+                                                        string strSql = string.Format("update PLAYRECORD set PR_REC_STATUS = '{0}' where PR_SourceID='{1}'", "删除", PR_SourceID);
+                                                        strSql += " update EBMInfo set EBMState=1 where SEBDID='" + SEBDIDStatusFlag + "' ";
+                                                        strSql += "delete from InfoVlaue";
+                                                        mainForm.dba.UpdateDbBySQL(strSql);
+                                                        Tccplayer.Enabled = false;
+                                                        RealAudioFlag = false;//标记为已经执行
+                                                        if (SingletonInfo.GetInstance().DicTsCmd_ID.ContainsKey(AreaString))
+                                                        {
+                                                            if (SingletonInfo.GetInstance().DicTsCmd_ID.Remove(AreaString))
+                                                            {
+                                                                //SetText("去除DicTsCmd_ID的键：" + AreaString, Color.Black);
+                                                            }
+                                                          
+                                                        }
+
+                                                        if (SingletonInfo.GetInstance().DicPlayingThread.ContainsKey(ebd.EBM.MsgContent.AreaCode))
+                                                        {
+                                                            foreach (var item in SingletonInfo.GetInstance().DicPlayingThread[ebd.EBM.MsgContent.AreaCode])
+                                                            {
+                                                                Application.DoEvents();
+                                                                item.Abort();
+                                                                GC.Collect();
+                                                            }
+                                                            SingletonInfo.GetInstance().DicPlayingThread.Remove(ebd.EBM.MsgContent.AreaCode);
+                                                        }
+                                                        lDealTarFiles.RemoveAt(0);//无论是否成功，都移除  先注释 20180820
+                                                        break;
+                                                    }
+                                                   
                                                 }
                                             }
-                                            else if (!EBMVerifyState && !RealAudioFlag && strMsgType == "2")
-                                            {
-                                                ListViewItem listItem = new ListViewItem();
-                                                listItem.Text = (list_PendingTask.Items.Count + 1).ToString();
-                                                listItem.SubItems.Add(lDealTarFiles[0]);
-                                                this.Invoke(new Action(() => { list_PendingTask.Items.Add(listItem); }));
-                                                lDealTarFiles.RemoveAt(0);//无论是否成功，都移除   先注释  20180820
-                                                continue;
-                                            }
+                                         
                                             #region AreaCode
                                             listAreaCode.Clear();
                                             strAreaFlag = "";  //本平台是否播放的标志
@@ -1082,12 +1164,9 @@ namespace GRPlatForm
                                                 }
 
                                                 #endregion End
-
-                                                int pper = 0;
-                                                MessageBox.Show("flag");
                                                 #region 处理消息
                                                 //if (!string.IsNullOrEmpty(ebd.EBM.MsgContent.MsgDesc.Trim()))
-                                                if (string.IsNullOrEmpty(ebd.EBM.MsgContent.MsgDesc.Trim()))
+                                                if (!string.IsNullOrEmpty(ebd.EBM.MsgContent.MsgDesc.Trim()))
                                                 {
                                                     #region 处理应急内容
                                                     AudioFileListTmp.Clear();
@@ -1158,7 +1237,7 @@ namespace GRPlatForm
                                                                 " VALUES('" + DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + "','" + cmdOpen + "','" + '0' + "')";
                                                                 mainForm.dba.UpdateOrInsertBySQL(strsql);
                                                             }
-                                                            Thread.Sleep(6000);
+                                                            Thread.Sleep(600);
 
                                                             for (int iLoopMedia = 0; iLoopMedia < AudioFileListTmp.Count; iLoopMedia++)
                                                             {
@@ -1195,115 +1274,29 @@ namespace GRPlatForm
                                                     }
                                                     else //EBM实时流播放
                                                     {
-                                                        #region  貌似不能用  20180820
+                                                        string xmlFile = Path.GetFileName(sAnalysisFileName);
+                                                        string xmlFilePath = sAudioFilesFolder + "\\" + xmlFile;
+                                                        //先考虑文转语
+                                                        PlayElements pe = new PlayElements();
+                                                        pe.EBDITEM = ebd;
+                                                        pe.sAnalysisFileName = sAnalysisFileName;
+                                                        pe.targetPath = "";
+                                                        pe.xmlFilePath = xmlFilePath;
 
-                                                        if (strAuxiliaryType != "61" && !EBMVerifyState)//
+                                                        ParameterizedThreadStart ParStart = new ParameterizedThreadStart(PlaybackProcess);
+
+                                                        Thread myThread = new Thread(ParStart);
+                                                        myThread.IsBackground = true;
+
+                                                        if (SingletonInfo.GetInstance().DicPlayingThread.ContainsKey(ebd.EBM.MsgContent.AreaCode))
                                                         {
-                                                            ListViewItem listItem = new ListViewItem();
-                                                            listItem.Text = (list_PendingTask.Items.Count + 1).ToString();
-                                                            listItem.SubItems.Add(lDealTarFiles[0]);
-                                                            this.Invoke(new Action(() => { list_PendingTask.Items.Add(listItem); }));
-                                                            lDealTarFiles.RemoveAt(0);//无论是否成功，都移除
-                                                            continue;
+                                                            SingletonInfo.GetInstance().DicPlayingThread.Remove(ebd.EBM.MsgContent.AreaCode);
                                                         }
-                                                        RealAudioFlag = true;
-                                                        try
-                                                        {
 
-                                                            SetText("EBM开始时间: " + ebd.EBM.MsgBasicInfo.StartTime + "===>EBM结束时间: " + ebd.EBM.MsgBasicInfo.EndTime, Color.Orange);
-                                                            DateTime EBStartTime = DateTime.Parse(ebd.EBM.MsgBasicInfo.StartTime).AddSeconds(2);
-                                                            if (EBStartTime < DateTime.Now)
-                                                            {
-                                                                EBStartTime = DateTime.Now.AddSeconds(2);
-                                                            }
-                                                            string sStartTime = EBStartTime.ToString("yyyy-MM-dd HH:mm:ss"); //ebd.EBM.MsgBasicInfo.StartTime;
-                                                            string sDateTime = EBStartTime.ToString("yyyy-MM-dd HH:mm:ss");//ebd.EBM.MsgBasicInfo.StartTime;
-                                                            string sEndDateTime = ebd.EBM.MsgBasicInfo.EndTime;
-                                                            ccplayerStopTime = DateTime.Parse(sEndDateTime);
-                                                            if (TEST == "YES")
-                                                            {
-                                                                sStartTime = DateTime.Now.AddSeconds(2).ToString("yyyy-MM-dd HH:mm:ss");
-                                                                sDateTime = DateTime.Now.AddSeconds(2).ToString("yyyy-MM-dd HH:mm:ss");
-                                                                sEndDateTime = DateTime.Now.AddMinutes(5).ToString("yyyy-MM-dd HH:mm:ss");//ebd.EBM.MsgBasicInfo.EndTime;
-                                                                ccplayerStopTime = DateTime.Now.AddMinutes(2);
-
-                                                            }
-                                                            SetText("实时流开始时间>>>>" + sStartTime + "----结束时间>>>" + ccplayerStopTime.ToString("yyyy-MM-dd HH:mm:ss") + "是否是TEST:" + TEST, Color.Orange);
-                                                            string strPID = m_nAudioPIDID + "~1";
-                                                            string sORG_ID = m_AreaCode;//((int)mainForm.dba.getQueryResultBySQL(sqlstr)).ToString();
-
-                                                            sqlstr = "insert into TsCmdStore(TsCmd_Type, TsCmd_Mode, TsCmd_UserID, TsCmd_ValueID, TsCmd_Params, TsCmd_Date, TsCmd_Status,TsCmd_EndTime,TsCmd_Note)" +
-                                                                    "values('音源播放', '区域', 1, " + m_AreaCode + ", '" + strPID + "', '" + sDateTime + "', 0,'" + sEndDateTime + "'," + "'-1'" + ")";
-
-                                                            TsCmdStoreID = mainForm.dba.UpdateDbBySQLRetID(sqlstr).ToString();
-                                                            SendMQOrder(2, strPID, TsCmdStoreID);//MQ发送
-                                                            Thread.Sleep(500);
-                                                            SetText("立即播放音频延时开始：" + DateTime.Now.ToString(), Color.Blue);
-                                                            Thread.Sleep(iMediaDelayTime);//延迟10秒
-                                                            Application.DoEvents();
-                                                            SetText("立即播放音频开始：" + DateTime.Now.ToString(), Color.Blue);
-                                                            string strURL = "";
-
-                                                            string FileNameNum = "";
-                                                            //文转语
-                                                            if (strAuxiliaryType == "3")
-                                                            {
-                                                                FileNameNum = rdMQFileName.Next(00, 99).ToString();
-                                                                string Message = ebd.EBM.MsgContent.MsgDesc;
-                                                                SetText(Message, Color.Olive);
-                                                                if (MQStartFlag)
-                                                                    MQDLL.SendMessageMQ("PACKETTYPE~TTS|CONTENT~" + Message + "|FILE~" + FileNameNum + ".wav");
-                                                            }
-                                                            lock (oLockPlay)
-                                                            {
-                                                                if (strAuxiliaryType == "61") //实时流播发
-                                                                {
-
-                                                                    ccplay.TsCmdStoreID = TsCmdStoreID;//PlayRecord停止的标示
-                                                                    m_ccplayURL = "udp://@" + m_StreamPortURL;
-                                                                    if (ccplay.m_bPlayFlag == false)
-                                                                    {
-                                                                        ccplay.m_bPlayFlag = true;
-                                                                        //--Tccplayer.Enabled = true;
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        ccplay.StopCPPPlayer2();
-                                                                        Thread.Sleep(1000);
-                                                                        ccplayerthread.Abort();
-                                                                        Thread.Sleep(1000);
-                                                                        ccplayerthread = new Thread(CPPPlayerThread);
-                                                                        ccplayerthread.Start();
-                                                                        //--Tccplayer.Enabled = true;
-                                                                    }
-                                                                }
-                                                                else if (strAuxiliaryType == "3")
-                                                                {
-                                                                    Thread.Sleep(5000);
-                                                                    ccplay.TsCmdStoreID = TsCmdStoreID;//PlayRecord停止的标示
-                                                                    m_ccplayURL = AudioCloudIP + FileNameNum + ".wav";     //"udp://@" + m_StreamPortURL;
-                                                                    if (ccplay.m_bPlayFlag == false)
-                                                                    {
-                                                                        ccplay.m_bPlayFlag = true;
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        ccplay.StopCPPPlayer2();
-                                                                        Thread.Sleep(1000);
-                                                                        ccplayerthread.Abort();
-                                                                        Thread.Sleep(1000);
-                                                                        ccplayerthread = new Thread(CPPPlayerThread);
-                                                                        ccplayerthread.Start();
-                                                                    }
-                                                                }
-                                                            }
-
-                                                        }
-                                                        catch (Exception es)
-                                                        {
-                                                            Log.Instance.LogWrite(es.Message);
-                                                        }
-                                                        #endregion
+                                                        List<Thread> ThreadList = new List<Thread>();
+                                                        ThreadList.Add(myThread);
+                                                        SingletonInfo.GetInstance().DicPlayingThread.Add(ebd.EBM.MsgContent.AreaCode, ThreadList);
+                                                        myThread.Start(pe);
                                                     }
                                                     #endregion
                                                 }
@@ -1351,30 +1344,40 @@ namespace GRPlatForm
                                                         AudioFileList.Add(targetPath);
 
                                                         #region 音频播放 20180706
+
+                                                        if (SingletonInfo.GetInstance().DicPlayingThread.ContainsKey(ebd.EBM.MsgContent.AreaCode))
+                                                        {
+                                                            foreach (var item in SingletonInfo.GetInstance().DicPlayingThread[ebd.EBM.MsgContent.AreaCode])
+                                                            {
+                                                                item.Abort();
+                                                            }
+                                                            SingletonInfo.GetInstance().DicPlayingThread.Remove(ebd.EBM.MsgContent.AreaCode);
+
+                                                            SetText("开播前删除字典值：" + ebd.EBM.MsgContent.AreaCode+"-->" + SingletonInfo.GetInstance().DicPlayingThread.Count.ToString(), Color.Purple);
+                                                        }
+
+
                                                         PlayElements pe = new PlayElements();
                                                         pe.EBDITEM = ebd;
                                                         pe.sAnalysisFileName = sAnalysisFileName;
                                                         pe.targetPath = targetPath;
                                                         pe.xmlFilePath = xmlFilePath;
-
                                                         ParameterizedThreadStart ParStart = new ParameterizedThreadStart(PlaybackProcess);
                                                         Thread myThread = new Thread(ParStart);
-                                                      
+                                                        myThread.IsBackground = true;
+                                                        List<Thread> ThreadList = new List<Thread>();
+                                                        ThreadList.Add(myThread);
+                                                  
+
+                                                        SingletonInfo.GetInstance().DicPlayingThread.Add(ebd.EBM.MsgContent.AreaCode, ThreadList);
                                                         myThread.Start(pe);
-
-                                                       
-
-
-                                                        int pp = 123;
-                                                        MessageBox.Show("flag");
-                                                      
                                                         #endregion----------------------------------
 
                                                     }
                                                 }
                                                 catch (Exception fex)
                                                 {
-                                                    Log.Instance.LogWrite(fex.Message);
+                                                   // MessageBox.Show(fex.Message + fex.StackTrace);
                                                 }
                                                 #endregion End
                                                 AudioFileList.Clear();
@@ -1481,13 +1484,13 @@ namespace GRPlatForm
                         }
                         catch (Exception dxml)
                         {
-                            Log.Instance.LogWrite("处理XML:" + dxml.Message);
+                           // MessageBox.Show(dxml.Message + dxml.StackTrace);
                         }
                     }//for循环处理接收到的Tar包
                 }
                 catch (Exception em)
                 {
-                    Log.Instance.LogWrite(em.Message);
+                  //  MessageBox.Show(em.Message + em.StackTrace);
                 }
                 #endregion 处理Tar包
 
@@ -1495,30 +1498,162 @@ namespace GRPlatForm
         }
 
 
+
+        /// <summary>
+        /// 发送LED清屏指令
+        /// </summary>
+        /// <param name="Type"></param>
+        /// <param name="ParamValue"></param>
+        /// <param name="TsCmd_ID"></param>
+        /// <returns></returns>
+        private bool SendMQOrderClearLED(string TsCmd_ValueID)
+        {
+            if (ebd != null)
+            {
+                string InfoValueStr = "insert into InfoVlaue values('" + ebd.EBDID + "')";
+                mainForm.dba.UpdateDbBySQL(InfoValueStr);
+            }
+            if (!MQStartFlag)
+            {
+                Console.WriteLine("MQ标识未启用,取消发送!");
+                return false;
+            }
+            MQActivStart();
+            m_lstProperty = InstallClearLEDMQ(TsCmd_ValueID);
+            return m_mq.SendMQMessage(true, "Send", m_lstProperty);
+        }
+
+        private List<Property> InstallClearLEDMQ(string TsCmd_ValueID)
+        {
+            List<Property> InstallList = new List<Property>();
+            Property item = new Property();
+            item.name = "TsCmd_Mode";
+            item.value = "区域";
+            InstallList.Add(item);
+
+            Property itemTime = new Property(); ;
+            itemTime.name = "TsCmd_Date";
+            itemTime.value = DateTime.Now.AddSeconds(2).ToString("yyyy-MM-dd HH:mm:ss");
+            InstallList.Add(itemTime);
+
+            Property itemUserID = new Property();
+            itemUserID.name = "TsCmd_UserID";
+            itemUserID.value = SingletonInfo.GetInstance().TsCmd_UserID;
+            InstallList.Add(itemUserID);
+
+            Property itemType = new Property();
+            itemType.name = "TsCmd_Type";
+            itemType.value = "LED清屏";
+            InstallList.Add(itemType);
+
+            Property itemUSER_PRIORITY = new Property();
+            itemUSER_PRIORITY.name = "USER_PRIORITY";
+            itemUSER_PRIORITY.value = SingletonInfo.GetInstance().USER_PRIORITY;
+            InstallList.Add(itemUSER_PRIORITY);
+
+            Property itemTsCmd_Status = new Property();
+            itemTsCmd_Status.name = "TsCmd_Status";
+            itemTsCmd_Status.value = "0";
+            InstallList.Add(itemTsCmd_Status);
+
+            Property itemUSER_ORG_CODE = new Property();
+            itemUSER_ORG_CODE.name = "USER_ORG_CODE";
+            itemUSER_ORG_CODE.value = SingletonInfo.GetInstance().USER_ORG_CODE;
+            InstallList.Add(itemUSER_ORG_CODE);
+
+            Property itemTsCmd_ValueID = new Property();
+            itemTsCmd_ValueID.name = "TsCmd_ValueID";
+            itemTsCmd_ValueID.value = TsCmd_ValueID;
+            InstallList.Add(itemTsCmd_ValueID);
+
+
+
+            return InstallList;
+        }
+
+
+        /// <summary>
+        /// 获取TMC区域代码
+        /// </summary>
+        /// <param name="AreaCode"></param>
+        /// <returns></returns>
+        private string GetTmcValue(string AreaCode)
+        {
+            string sqlQueryTsCmd_ValueID = "select ORG_ID from Organization where GB_CODE in (" + AreaCode + ")";
+            DataTable dtMedia = mainForm.dba.getQueryInfoBySQL(sqlQueryTsCmd_ValueID);
+            string TsCmd_ValueID = "";
+            if (dtMedia != null && dtMedia.Rows.Count > 0)
+            {
+                foreach (DataRow item in dtMedia.Rows)
+                {
+                    TsCmd_ValueID += item["ORG_ID"].ToString() + ",";
+                }
+
+            }
+            if (string.IsNullOrEmpty(TsCmd_ValueID))
+            {
+                return null;
+            }
+            TsCmd_ValueID = TsCmd_ValueID.Substring(0, TsCmd_ValueID.Length - 1);
+            return TsCmd_ValueID;
+        }
+
+        protected string CombinationArea(string[] PlayArea)
+        {
+
+            string AreaCodeValue = "";
+            if (PlayArea.Length > 1)
+            {
+                for (int i = 0; i < PlayArea.Length; i++)
+                {
+                    if (i == PlayArea.Length - 1)
+                    {
+                        AreaCodeValue += "'" + PlayArea[0] + "'";
+                    }
+                    else
+                    {
+                        AreaCodeValue += "'" + PlayArea[i] + "',";
+                    }
+                }
+            }
+            else
+            {
+                AreaCodeValue += "'" + PlayArea[0] + "'";
+            }
+            return AreaCodeValue;
+        }
         public void PlaybackProcess(object o)
         {
-            PlayElements pe= (PlayElements)o;
-            EBD ebd = pe.EBDITEM;
-            string sAnalysisFileName = pe.sAnalysisFileName;
-            string xmlFilePath = pe.xmlFilePath;
-            string targetPath = pe.targetPath;
+            try
+            {
+                PlayElements pe = (PlayElements)o;
+                EBD ebd = pe.EBDITEM;
+                string sAnalysisFileName = pe.sAnalysisFileName;
+                string xmlFilePath = pe.xmlFilePath;
+                string targetPath = pe.targetPath;
 
+                AudioModel audio = new AudioModel();
+                audio.PlayingTime = Convert.ToDateTime(ebd.EBM.MsgBasicInfo.StartTime);
+                audio.PlayEndTime = Convert.ToDateTime(ebd.EBM.MsgBasicInfo.EndTime);
+                string xmlFile = Path.GetFileName(sAnalysisFileName);
+                audio.XmlFilaPath = xmlFilePath;
 
-
-            AudioModel audio = new AudioModel();
-            audio.PlayingTime = Convert.ToDateTime(ebd.EBM.MsgBasicInfo.StartTime);
-            audio.PlayEndTime = Convert.ToDateTime(ebd.EBM.MsgBasicInfo.EndTime);
-            string xmlFile = Path.GetFileName(sAnalysisFileName);
-            audio.XmlFilaPath = xmlFilePath;
-            string msg = Encoding.UTF8.GetString(Encoding.Default.GetBytes(targetPath));
-            audio.PlayingContent = targetPath;
-            audio.AeraCodeReal = ebd.EBM.MsgContent.AreaCode;
-            audio.MsgTitleNew = ebd.EBM.MsgContent.MsgTitle;
-            audio.EBMID = ebd.EBM.EBMID;
-            audio.PlayArea = ebd.EBM.MsgContent.AreaCode.Split(',');
-            MQAudioHelper mqaudio = new MQAudioHelper(audio);
-            if ((PlayType == "2"))
+                audio.PlayingContent = targetPath;
+                audio.AeraCodeReal = ebd.EBM.MsgContent.AreaCode;
+                audio.MsgTitleNew = ebd.EBM.MsgContent.MsgTitle;
+                audio.EBMID = ebd.EBM.EBMID;
+                audio.PlayArea = ebd.EBM.MsgContent.AreaCode.Split(',');
+                audio.MsgDesc = ebd.EBM.MsgContent.MsgDesc.Trim();
+                MQAudioHelper mqaudio = new MQAudioHelper(audio);
+                // if ((PlayType == "2"))
                 mqaudio.PlayReady();
+            }
+            catch (Exception  ex)
+            {
+
+               // MessageBox.Show(ex.Message + ex.StackTrace);
+            }
+          
         }
 
         public string GetSequenceCodes()
@@ -2994,34 +3129,7 @@ namespace GRPlatForm
         /// <param name="e"></param>
         private void button1_Click(object sender, EventArgs e)
         {
-            XmlDocument xmlPlatformInformation = new XmlDocument();
-            responseXML PlatformInformation = new responseXML();
-            PlatformInformation.SourceAreaCode = strSourceAreaCode;
-            PlatformInformation.SourceType = strSourceType;
-            PlatformInformation.SourceName = strSourceName;
-            PlatformInformation.SourceID = strSourceID;
-            PlatformInformation.sHBRONO = strHBRONO;
-
-            ServerForm.DeleteFolder(sHeartSourceFilePath);//删除原有XML发送文件的文件夹下的XML
-            string frdStateName = "";
-            try
-            {
-
-                frdStateName = "10" + PlatformInformation.sHBRONO + GetSequenceCodes();
-
-                string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
-
-                xmlPlatformInformation = PlatformInformation.platformInfoResponse(frdStateName, 1);
-
-                CreateXML(xmlPlatformInformation, sHeartSourceFilePath + xmlEBMStateFileName);
-                //  HttpServerFrom.mainFrm.GenerateSignatureFile(sHeartSourceFilePath, frdStateName);   测试注释  20180812
-                ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
-            }
-            catch (Exception ex)
-            {
-            }
+            UpdateEBRPSInfo();
         }
 
         public int GetGBCodeCount(string areaID, string logicalCode)
@@ -3031,249 +3139,362 @@ namespace GRPlatForm
             return Convert.ToInt32(dt.Rows[0][0].ToString());
         }
 
+        /// <summary>
+        /// 平台状态上报
+        /// </summary>
+        private void UpdateEBRPSState()
+        {
+
+            Task.Factory.StartNew(() =>
+            {
+                XmlDocument xmlHeartDoc = new XmlDocument();
+                responseXML rHeart = new responseXML();
+                rHeart.SourceAreaCode = strSourceAreaCode;
+                rHeart.SourceType = strSourceType;
+                rHeart.SourceName = strSourceName;
+                rHeart.SourceID = strSourceID;
+                rHeart.sHBRONO = strHBRONO;
+
+                ServerForm.DeleteFolder(sHeartSourceFilePath);//删除原有XML发送文件的文件夹下的XML
+                string frdStateName = "";
+                try
+                {
+
+                    frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
+                    string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
+
+                    xmlHeartDoc = rHeart.platformstateInfoResponse(frdStateName);
+                    CreateXML(xmlHeartDoc, sHeartSourceFilePath + xmlEBMStateFileName);
+
+                    //  HttpServerFrom .mainFrm.GenerateSignatureFile(sHeartSourceFilePath, frdStateName); 测试注释 20180812
+
+                    ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
+                    string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
+                    // SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
+
+                    HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);//新增于20180824
+                    SetManager("平台状态上报:" + DateTime.Now.ToString(), Color.Green);
+                }
+                catch
+                {
+                }
+            });
+
+             
+        }
+
+
+        /// <summary>
+        /// 上传平台信息
+        /// </summary>
+        private void UpdateEBRPSInfo()
+        {
+
+            Task.Factory.StartNew(() =>
+            {
+
+                XmlDocument xmlPlatformInformation = new XmlDocument();
+                responseXML PlatformInformation = new responseXML();
+                PlatformInformation.SourceAreaCode = strSourceAreaCode;
+                PlatformInformation.SourceType = strSourceType;
+                PlatformInformation.SourceName = strSourceName;
+                PlatformInformation.SourceID = strSourceID;
+                PlatformInformation.sHBRONO = strHBRONO;
+
+                ServerForm.DeleteFolder(sHeartSourceFilePath);//删除原有XML发送文件的文件夹下的XML
+                string frdStateName = "";
+                try
+                {
+
+                    // frdStateName = "10" + PlatformInformation.sHBRONO + "0000000000000" + rdState.Next(100, 999).ToString();
+                    frdStateName = "10" + PlatformInformation.sHBRONO + GetSequenceCodes();
+
+                    string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
+
+                    xmlPlatformInformation = PlatformInformation.platformInfoResponse(frdStateName, 1);
+
+                    CreateXML(xmlPlatformInformation, sHeartSourceFilePath + xmlEBMStateFileName);
+                    //  HttpServerFrom.mainFrm.GenerateSignatureFile(sHeartSourceFilePath, frdStateName);   测试注释  20180812
+                    ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
+                    string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
+                    //   SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
+
+                    HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);//新增于20180824
+
+
+
+                }
+                catch (Exception ex)
+                {
+                }
+                SetManager("平台信息上报:" + DateTime.Now.ToString(), Color.Green);
+            });
+
+            
+        }
+
+        /// <summary>
+        /// 终端状态
+        /// </summary>
         private void UpdateEBRDTState()
         {
-            XmlDocument xmlHeartDoc = new XmlDocument();
-            responseXML rHeart = new responseXML();
-            rHeart.SourceAreaCode = strSourceAreaCode;
-            rHeart.SourceType = strSourceType;
-            rHeart.SourceName = strSourceName;
-            rHeart.SourceID = strSourceID;
-            rHeart.sHBRONO = strHBRONO;
-            string MediaSql = "";
-            string strSRV_ID = "";
-            string strSRV_CODE = "";
-            ServerForm.DeleteFolder(sHeartSourceFilePath);//删除原有XML发送文件的文件夹下的XML
-            string frdStateName = "";
-            List<Device> lDev = new List<Device>();
-            try
+
+            Task.Factory.StartNew(() =>
             {
-                //主要查终端
-                //  MediaSql = "select SRV.SRV_ID,SRV.SRV_CODE,SRV_GOOGLE, SRV_PHYSICAL_CODE,srv_detail,SRV_LOGICAL_CODE,SRV_MFT_DATE,updateDate,SRV_RMT_STATUS,areaId,SRV_LOGICAL_CODE_GB  FROM SRV  left join Srvtype on   SRV.DeviceTypeId= Srvtype .srv_id where  Srvtype.srv_id=1";
-                MediaSql = "select SRV.SRV_ID,SRV.SRV_CODE,SRV_GOOGLE, SRV_PHYSICAL_CODE,srv_detail,SRV_LOGICAL_CODE,SRV_MFT_DATE,updateDate,SRV_RMT_STATUS,areaId,SRV_LOGICAL_CODE_GB  FROM SRV  left join Srvtype on   SRV.DeviceTypeId= Srvtype .srv_id";
 
-                DataTable dtMedia = mainForm.dba.getQueryInfoBySQL(MediaSql);
-                if (dtMedia != null && dtMedia.Rows.Count > 0)
+                XmlDocument xmlHeartDoc = new XmlDocument();
+                responseXML rHeart = new responseXML();
+                rHeart.SourceAreaCode = strSourceAreaCode;
+                rHeart.SourceType = strSourceType;
+                rHeart.SourceName = strSourceName;
+                rHeart.SourceID = strSourceID;
+                rHeart.sHBRONO = strHBRONO;
+                string MediaSql = "";
+                string strSRV_ID = "";
+                string strSRV_CODE = "";
+                // HttpServerFrom.DeleteFolder(sHeartSourceFilePath);//删除原有XML发送文件的文件夹下的XML
+                ServerForm.DeleteFolder(sHeartSourceFilePath);//删除原有XML发送文件的文件夹下的XML
+                string frdStateName = "";
+                List<Device> lDev = new List<Device>();
+
+                SetManager("终端状态上报:" + DateTime.Now.ToString(), Color.Green);
+                try
                 {
-                    if (dtMedia.Rows.Count > 100)
+                    //主要查终端
+                    //  MediaSql = "select SRV.SRV_ID,SRV.SRV_CODE,SRV_GOOGLE, SRV_PHYSICAL_CODE,srv_detail,SRV_LOGICAL_CODE,SRV_MFT_DATE,updateDate,SRV_RMT_STATUS,areaId,SRV_LOGICAL_CODE_GB  FROM SRV  left join Srvtype on   SRV.DeviceTypeId= Srvtype .srv_id where  Srvtype.srv_id=1";
+                    MediaSql = "select SRV.SRV_ID,SRV.SRV_CODE,SRV_GOOGLE, SRV_PHYSICAL_CODE,srv_detail,SRV_LOGICAL_CODE,SRV_MFT_DATE,updateDate,SRV_RMT_STATUS,areaId,SRV_LOGICAL_CODE_GB,SRV_RMT_SWITCH  FROM SRV  left join Srvtype on   SRV.DeviceTypeId= Srvtype .srv_id";
+
+                    DataTable dtMedia = mainForm.dba.getQueryInfoBySQL(MediaSql);
+                    if (dtMedia != null && dtMedia.Rows.Count > 0)
                     {
+                        //if (dtMedia.Rows.Count > 100)
+                        //{
 
-                        int mod = dtMedia.Rows.Count / 100 + 1;
-                        for (int i = 0; i < mod; i++)
-                        {
-                            if (mod - 1 > i)
-                            {
-                                for (int idtM = 0; idtM < 99; idtM++)
-                                {
-                                    Device DV = new Device();
-                                    DV.SRV_ID = dtMedia.Rows[99 * i + idtM][0].ToString();
-                                    strSRV_CODE = dtMedia.Rows[99 * i + idtM][1].ToString();
-                                    #region 自动添加逻辑编码 2018-01-10
-                                    string SRV_LOGICAL_CODE = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE"].ToString();
-                                    string areaId = dtMedia.Rows[99 * i + idtM]["areaId"].ToString();
-                                    string SRV_LOGICAL_CODE_GB = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE_GB"].ToString();
-                                    int number = GetGBCodeCount(areaId, SRV_LOGICAL_CODE_GB);
+                        //    int mod = dtMedia.Rows.Count / 100 + 1;
+                        //    for (int i = 0; i < mod; i++)
+                        //    {
+                        //        if (mod - 1 > i)
+                        //        {
+                        //            for (int idtM = 0; idtM < 99; idtM++)
+                        //            {
+                        //                Device DV = new Device();
+                        //                DV.SRV_ID = dtMedia.Rows[99 * i + idtM][0].ToString();
+                        //                strSRV_CODE = dtMedia.Rows[99 * i + idtM][1].ToString();
+                        //                #region 自动添加逻辑编码 2018-01-10
+                        //                string SRV_LOGICAL_CODE = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE"].ToString();
+                        //                string areaId = dtMedia.Rows[99 * i + idtM]["areaId"].ToString();
+                        //                string SRV_LOGICAL_CODE_GB = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE_GB"].ToString();
+                        //                int number = GetGBCodeCount(areaId, SRV_LOGICAL_CODE_GB);
 
-                                    LogicalData logicaldata = new LogicalData();
-                                    logicaldata.srvID = dtMedia.Rows[99 * i + idtM]["SRV_ID"].ToString();
-                                    logicaldata.srvAreaID = areaId;
-                                    logicaldata.LogicalCode = SRV_LOGICAL_CODE;
-                                    LogicalCoding.LogicalHelper logical = new LogicalCoding.LogicalHelper(logicaldata);
+                        //                LogicalData logicaldata = new LogicalData();
+                        //                logicaldata.srvID = dtMedia.Rows[99 * i + idtM]["SRV_ID"].ToString();
+                        //                logicaldata.srvAreaID = areaId;
+                        //                logicaldata.LogicalCode = SRV_LOGICAL_CODE;
+                        //                LogicalCoding.LogicalHelper logical = new LogicalCoding.LogicalHelper(logicaldata);
 
-                                    if (number > 1)
-                                    {
-                                        SRV_LOGICAL_CODE_GB = logical.GetLogicalCodel(SRV_LOGICAL_CODE_GB);
+                        //                if (number > 1)
+                        //                {
+                        //                    SRV_LOGICAL_CODE_GB = logical.GetLogicalCodel(SRV_LOGICAL_CODE_GB);
 
-                                        logical.UpdateLogicalCode(logicaldata.srvID, SRV_LOGICAL_CODE_GB);
-                                    }
+                        //                    logical.UpdateLogicalCode(logicaldata.srvID, SRV_LOGICAL_CODE_GB);
+                        //                }
 
-                                    if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB) || SRV_LOGICAL_CODE_GB.Length != 23)
-                                    {
-
-
-                                        SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
-                                        if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
-                                        {
-                                            SetManager("区域码有误请认真核对区域码", Color.Red);
-                                            continue;
-                                        }
-                                    }
-                                    if (!string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
-                                    {
-                                        if (!(SRV_LOGICAL_CODE_GB.Length == 23 && logical.GetCombAreaCode(SRV_LOGICAL_CODE_GB, areaId)))
-                                        {
-                                            SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
-                                        }
-                                    }
-                                    DV.DeviceID = SRV_LOGICAL_CODE_GB;
-                                    #endregion
-
-                                    DV.DeviceName = dtMedia.Rows[99 * i + idtM][4].ToString();
-
-                                    DV.Latitude = dtMedia.Rows[99 * i + idtM][2].ToString().Split(',')[0];
-                                    DV.Longitude = dtMedia.Rows[99 * i + idtM][2].ToString().Split(',')[1];
-                                    DV.Srv_Mft_Date = dtMedia.Rows[99 * i + idtM]["SRV_MFT_DATE"].ToString();
-                                    DV.UpdateDate = dtMedia.Rows[99 * i + idtM]["updateDate"].ToString();
-                                    DV.DeviceState = dtMedia.Rows[99 * i + idtM]["SRV_RMT_STATUS"].ToString();
-                                    lDev.Add(DV);
-                                }
-                            }
-                            else
-                            {
-                                for (int idtM = 0; idtM < dtMedia.Rows.Count - 99 * i; idtM++)
-                                {
-                                    Device DV = new Device();
-                                    DV.SRV_ID = dtMedia.Rows[99 * i + idtM][0].ToString();
-                                    strSRV_CODE = dtMedia.Rows[99 * i + idtM][1].ToString();
-                                    #region 自动添加逻辑编码 2018-01-10
-                                    string SRV_LOGICAL_CODE = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE"].ToString();
-                                    string areaId = dtMedia.Rows[99 * i + idtM]["areaId"].ToString();
-                                    string SRV_LOGICAL_CODE_GB = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE_GB"].ToString();
-                                    int number = GetGBCodeCount(areaId, SRV_LOGICAL_CODE_GB);
-
-                                    LogicalData logicaldata = new LogicalData();
-                                    logicaldata.srvID = dtMedia.Rows[99 * i + idtM]["SRV_ID"].ToString();
-                                    logicaldata.srvAreaID = areaId;
-                                    logicaldata.LogicalCode = SRV_LOGICAL_CODE;
-                                    LogicalCoding.LogicalHelper logical = new LogicalCoding.LogicalHelper(logicaldata);
-
-                                    if (number > 1)
-                                    {
-                                        SRV_LOGICAL_CODE_GB = logical.GetLogicalCodel(SRV_LOGICAL_CODE_GB);
-
-                                        logical.UpdateLogicalCode(logicaldata.srvID, SRV_LOGICAL_CODE_GB);
-                                    }
-
-                                    if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB) || SRV_LOGICAL_CODE_GB.Length != 23)
-                                    {
+                        //                if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB) || SRV_LOGICAL_CODE_GB.Length != 23)
+                        //                {
 
 
-                                        SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
-                                        if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
-                                        {
-                                            SetManager("区域码有误请认真核对区域码", Color.Red);
-                                            continue;
-                                        }
-                                    }
-                                    if (!string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
-                                    {
-                                        if (!(SRV_LOGICAL_CODE_GB.Length == 23 && logical.GetCombAreaCode(SRV_LOGICAL_CODE_GB, areaId)))
-                                        {
-                                            SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
-                                        }
-                                    }
-                                    DV.DeviceID = SRV_LOGICAL_CODE_GB;
-                                    #endregion
+                        //                    SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
+                        //                    if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
+                        //                    {
+                        //                        SetManager("区域码有误请认真核对区域码", Color.Red);
+                        //                        continue;
+                        //                    }
+                        //                }
+                        //                if (!string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
+                        //                {
+                        //                    if (!(SRV_LOGICAL_CODE_GB.Length == 23 && logical.GetCombAreaCode(SRV_LOGICAL_CODE_GB, areaId)))
+                        //                    {
+                        //                        SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
+                        //                    }
+                        //                }
+                        //                DV.DeviceID = SRV_LOGICAL_CODE_GB;
+                        //                #endregion
 
-                                    DV.DeviceName = dtMedia.Rows[99 * i + idtM][4].ToString();
+                        //                DV.DeviceName = dtMedia.Rows[99 * i + idtM][4].ToString();
 
-                                    DV.Latitude = dtMedia.Rows[99 * i + idtM][2].ToString().Split(',')[0];
-                                    DV.Longitude = dtMedia.Rows[99 * i + idtM][2].ToString().Split(',')[1];
-                                    DV.Srv_Mft_Date = dtMedia.Rows[99 * i + idtM]["SRV_MFT_DATE"].ToString();
-                                    DV.UpdateDate = dtMedia.Rows[99 * i + idtM]["updateDate"].ToString();
-                                    DV.DeviceState = dtMedia.Rows[99 * i + idtM]["SRV_RMT_STATUS"].ToString();
-                                    lDev.Add(DV);
-                                }
-                            }
+                        //                DV.Latitude = dtMedia.Rows[99 * i + idtM][2].ToString().Split(',')[0];
+                        //                DV.Longitude = dtMedia.Rows[99 * i + idtM][2].ToString().Split(',')[1];
+                        //                DV.Srv_Mft_Date = dtMedia.Rows[99 * i + idtM]["SRV_MFT_DATE"].ToString();
+                        //                DV.UpdateDate = dtMedia.Rows[99 * i + idtM]["updateDate"].ToString();
+                        //                DV.DeviceState = dtMedia.Rows[99 * i + idtM]["SRV_RMT_STATUS"].ToString();
+                        //                lDev.Add(DV);
+                        //            }
+                        //        }
+                        //        else
+                        //        {
+                        //            for (int idtM = 0; idtM < dtMedia.Rows.Count - 99 * i; idtM++)
+                        //            {
+                        //                Device DV = new Device();
+                        //                DV.SRV_ID = dtMedia.Rows[99 * i + idtM][0].ToString();
+                        //                strSRV_CODE = dtMedia.Rows[99 * i + idtM][1].ToString();
+                        //                #region 自动添加逻辑编码 2018-01-10
+                        //                string SRV_LOGICAL_CODE = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE"].ToString();
+                        //                string areaId = dtMedia.Rows[99 * i + idtM]["areaId"].ToString();
+                        //                string SRV_LOGICAL_CODE_GB = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE_GB"].ToString();
+                        //                int number = GetGBCodeCount(areaId, SRV_LOGICAL_CODE_GB);
+
+                        //                LogicalData logicaldata = new LogicalData();
+                        //                logicaldata.srvID = dtMedia.Rows[99 * i + idtM]["SRV_ID"].ToString();
+                        //                logicaldata.srvAreaID = areaId;
+                        //                logicaldata.LogicalCode = SRV_LOGICAL_CODE;
+                        //                LogicalCoding.LogicalHelper logical = new LogicalCoding.LogicalHelper(logicaldata);
+
+                        //                if (number > 1)
+                        //                {
+                        //                    SRV_LOGICAL_CODE_GB = logical.GetLogicalCodel(SRV_LOGICAL_CODE_GB);
+
+                        //                    logical.UpdateLogicalCode(logicaldata.srvID, SRV_LOGICAL_CODE_GB);
+                        //                }
+
+                        //                if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB) || SRV_LOGICAL_CODE_GB.Length != 23)
+                        //                {
+
+
+                        //                    SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
+                        //                    if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
+                        //                    {
+                        //                        SetManager("区域码有误请认真核对区域码", Color.Red);
+                        //                        continue;
+                        //                    }
+                        //                }
+                        //                if (!string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
+                        //                {
+                        //                    if (!(SRV_LOGICAL_CODE_GB.Length == 23 && logical.GetCombAreaCode(SRV_LOGICAL_CODE_GB, areaId)))
+                        //                    {
+                        //                        SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
+                        //                    }
+                        //                }
+                        //                DV.DeviceID = SRV_LOGICAL_CODE_GB;
+                        //                #endregion
+
+                        //                DV.DeviceName = dtMedia.Rows[99 * i + idtM][4].ToString();
+
+                        //                DV.Latitude = dtMedia.Rows[99 * i + idtM][2].ToString().Split(',')[0];
+                        //                DV.Longitude = dtMedia.Rows[99 * i + idtM][2].ToString().Split(',')[1];
+                        //                DV.Srv_Mft_Date = dtMedia.Rows[99 * i + idtM]["SRV_MFT_DATE"].ToString();
+                        //                DV.UpdateDate = dtMedia.Rows[99 * i + idtM]["updateDate"].ToString();
+                        //                DV.DeviceState = dtMedia.Rows[99 * i + idtM]["SRV_RMT_STATUS"].ToString();
+                        //                lDev.Add(DV);
+                        //            }
+                        //        }
 
 
 
-                            frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
-                            string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
+                        //        frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
+                        //        string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
 
-                            xmlHeartDoc = rHeart.DeviceStateResponse(lDev, frdStateName);
-                            CreateXML(xmlHeartDoc, sHeartSourceFilePath + xmlEBMStateFileName);
-                            ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                            string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                           // SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
-                            HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
-                            lDev.Clear();
-                        }
-                    }
-                    else
-                    {
+                        //        xmlHeartDoc = rHeart.DeviceStateResponse(lDev, frdStateName);
+                        //        CreateXML(xmlHeartDoc, sHeartSourceFilePath + xmlEBMStateFileName);
+                        //        //  HttpServerFrom .mainFrm.GenerateSignatureFile(sHeartSourceFilePath, frdStateName);  测试注释
+                        //        HttpServerFrom.tar.CreatTar(sHeartSourceFilePath, HttpServerFrom.sSendTarPath, frdStateName);//使用新TAR
+                        //        string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
+                        //       // SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
+
+                        //        HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName, 1);//新增于20180824
+                        //        lDev.Clear();
+                        //    }
+                        //}
+                        //else
+                        //{
                         for (int idtM = 0; idtM < dtMedia.Rows.Count; idtM++)
                         {
                             Device DV = new Device();
                             DV.SRV_ID = dtMedia.Rows[idtM][0].ToString();
                             strSRV_CODE = dtMedia.Rows[idtM][1].ToString();
-                            #region 自动添加逻辑编码 2018-01-10
-                            string SRV_LOGICAL_CODE = dtMedia.Rows[idtM]["SRV_LOGICAL_CODE"].ToString();
-                            string areaId = dtMedia.Rows[idtM]["areaId"].ToString();
+
                             string SRV_LOGICAL_CODE_GB = dtMedia.Rows[idtM]["SRV_LOGICAL_CODE_GB"].ToString();
-                            int number = GetGBCodeCount(areaId, SRV_LOGICAL_CODE_GB);
+                            #region 自动添加逻辑编码 2018-01-10  先注释  20180829
+                            //string SRV_LOGICAL_CODE = dtMedia.Rows[idtM]["SRV_LOGICAL_CODE"].ToString();
+                            //string areaId = dtMedia.Rows[idtM]["areaId"].ToString();
+                          
+                            //int number = GetGBCodeCount(areaId, SRV_LOGICAL_CODE_GB);
 
-                            LogicalData logicaldata = new LogicalData();
-                            logicaldata.srvID = dtMedia.Rows[idtM]["SRV_ID"].ToString();
-                            logicaldata.srvAreaID = areaId;
-                            logicaldata.LogicalCode = SRV_LOGICAL_CODE;
-                            LogicalCoding.LogicalHelper logical = new LogicalCoding.LogicalHelper(logicaldata);
+                            //LogicalData logicaldata = new LogicalData();
+                            //logicaldata.srvID = dtMedia.Rows[idtM]["SRV_ID"].ToString();
+                            //logicaldata.srvAreaID = areaId;
+                            //logicaldata.LogicalCode = SRV_LOGICAL_CODE;
+                            //LogicalCoding.LogicalHelper logical = new LogicalCoding.LogicalHelper(logicaldata);
 
-                            if (number > 1)
-                            {
-                                SRV_LOGICAL_CODE_GB = logical.GetLogicalCodel(SRV_LOGICAL_CODE_GB);
+                            //if (number > 1)
+                            //{
+                            //    SRV_LOGICAL_CODE_GB = logical.GetLogicalCodel(SRV_LOGICAL_CODE_GB);
 
-                                logical.UpdateLogicalCode(logicaldata.srvID, SRV_LOGICAL_CODE_GB);
-                            }
+                            //    logical.UpdateLogicalCode(logicaldata.srvID, SRV_LOGICAL_CODE_GB);
+                            //}
 
-                            if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB) || SRV_LOGICAL_CODE_GB.Length != 23)
-                            {
+                            //if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB) || SRV_LOGICAL_CODE_GB.Length != 23)
+                            //{
 
 
-                                SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
-                                if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
-                                {
-                                    SetManager("区域码有误请认真核对区域码", Color.Red);
-                                    continue;
-                                }
-                            }
-                            if (!string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
-                            {
-                                if (!(SRV_LOGICAL_CODE_GB.Length == 23 && logical.GetCombAreaCode(SRV_LOGICAL_CODE_GB, areaId)))
-                                {
-                                    SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
-                                }
-                            }
-                            DV.DeviceID = SRV_LOGICAL_CODE_GB;
+                            //    SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
+                            //    if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
+                            //    {
+                            //        SetManager("区域码有误请认真核对区域码", Color.Red);
+                            //        continue;
+                            //    }
+                            //}
+                            //if (!string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
+                            //{
+                            //    if (!(SRV_LOGICAL_CODE_GB.Length == 23 && logical.GetCombAreaCode(SRV_LOGICAL_CODE_GB, areaId)))
+                            //    {
+                            //        SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
+                            //    }
+                            //}
+
                             #endregion
-
+                            DV.DeviceID = SRV_LOGICAL_CODE_GB;
                             DV.DeviceName = dtMedia.Rows[idtM][4].ToString();
 
                             DV.Latitude = dtMedia.Rows[idtM][2].ToString().Split(',')[0];
                             DV.Longitude = dtMedia.Rows[idtM][2].ToString().Split(',')[1];
                             DV.Srv_Mft_Date = dtMedia.Rows[idtM]["SRV_MFT_DATE"].ToString();
                             DV.UpdateDate = dtMedia.Rows[idtM]["updateDate"].ToString();
+                            DV.SRV_RMT_SWITCH = dtMedia.Rows[idtM]["SRV_RMT_SWITCH"].ToString();
                             lDev.Add(DV);
                         }
-                        Random rdState = new Random();
+
                         frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
                         string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
 
                         xmlHeartDoc = rHeart.DeviceStateResponse(lDev, frdStateName);
                         CreateXML(xmlHeartDoc, sHeartSourceFilePath + xmlEBMStateFileName);
+                        //   HttpServerFrom .mainFrm.GenerateSignatureFile(sHeartSourceFilePath, frdStateName);  测试注释20180812
                         ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
                         string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
                         //SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
-                        HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
+                        HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);//新增于20180824
+                                                                                             //}
+                    }
+                    else
+                    {
+
+                        frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
+                        string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
+
+                        xmlHeartDoc = rHeart.DeviceStateResponse(lDev, frdStateName);
+                        CreateXML(xmlHeartDoc, sHeartSourceFilePath + xmlEBMStateFileName);
+                        //   HttpServerFrom .mainFrm.GenerateSignatureFile(sHeartSourceFilePath, frdStateName); 测试注释20180812
+                        ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
+                        string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
+                        //  SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
+                        HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);//新增于20180824
                     }
                 }
-                else
+                catch
                 {
-
-                    frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
-                    string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
-
-                    xmlHeartDoc = rHeart.DeviceStateResponse(lDev, frdStateName);
-                    CreateXML(xmlHeartDoc, sHeartSourceFilePath + xmlEBMStateFileName);
-                    ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                    string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                   // SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
-                    HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
                 }
-            }
-            catch
-            {
-            }
+            });
+               
         }
 
         /// <summary>
@@ -3281,207 +3502,215 @@ namespace GRPlatForm
         /// </summary>
         private void UpdateEBRDTInfo()
         {
-            XmlDocument xmlHeartDoc = new XmlDocument();
-            responseXML rHeart = new responseXML();
-            rHeart.SourceAreaCode = strSourceAreaCode;
-            rHeart.SourceType = strSourceType;
-            rHeart.SourceName = strSourceName;
-            rHeart.SourceID = strSourceID;
-            rHeart.sHBRONO = strHBRONO;
-            string MediaSql = "";
-            string strSRV_ID = "";
-            string strSRV_CODE = "";
-            ServerForm.DeleteFolder(sHeartSourceFilePath);//删除原有XML发送文件的文件夹下的XML
-            string frdStateName = "";
-            List<Device> lDev = new List<Device>();
-            try
+
+            Task.Factory.StartNew(() =>
             {
-
-                MediaSql = "select  SRV.SRV_ID,areaId,SRV.SRV_CODE,SRV_GOOGLE, SRV_PHYSICAL_CODE,srv_detail,SRV_LOGICAL_CODE,SRV_MFT_DATE,updateDate,SRV_RMT_STATUS,SRV_LOGICAL_CODE_GB  FROM SRV  left join Srvtype on   SRV.DeviceTypeId= Srvtype .srv_id ";
-                DataTable dtMedia = mainForm.dba.getQueryInfoBySQL(MediaSql);
-                if (dtMedia != null && dtMedia.Rows.Count > 0)
+                XmlDocument xmlHeartDoc = new XmlDocument();
+                responseXML rHeart = new responseXML();
+                rHeart.SourceAreaCode = strSourceAreaCode;
+                rHeart.SourceType = strSourceType;
+                rHeart.SourceName = strSourceName;
+                rHeart.SourceID = strSourceID;
+                rHeart.sHBRONO = strHBRONO;
+                string MediaSql = "";
+                string strSRV_ID = "";
+                string strSRV_CODE = "";
+                ServerForm.DeleteFolder(sHeartSourceFilePath);//删除原有XML发送文件的文件夹下的XML
+                string frdStateName = "";
+                List<Device> lDev = new List<Device>();
+                SetManager("终端信息上报:" + DateTime.Now.ToString(), Color.Green);
+                try
                 {
-                    if (dtMedia.Rows.Count > 100)
+
+                    MediaSql = "select  SRV.SRV_ID,areaId,SRV.SRV_CODE,SRV_GOOGLE, SRV_PHYSICAL_CODE,srv_detail,SRV_LOGICAL_CODE,SRV_MFT_DATE,updateDate,SRV_RMT_STATUS,SRV_LOGICAL_CODE_GB  FROM SRV  left join Srvtype on   SRV.DeviceTypeId= Srvtype .srv_id ";
+                    DataTable dtMedia = mainForm.dba.getQueryInfoBySQL(MediaSql);
+                    if (dtMedia != null && dtMedia.Rows.Count > 0)
                     {
-                        int mod = dtMedia.Rows.Count / 100 + 1;
-                        for (int i = 0; i < mod; i++)
-                        {
-                            if (mod - 1 > i)
-                            {
-                                for (int idtM = 0; idtM < 99; idtM++)
-                                {
-                                    Device DV = new Device();
-                                    DV.SRV_ID = dtMedia.Rows[99 * i + idtM][0].ToString();
-                                    strSRV_CODE = dtMedia.Rows[99 * i + idtM][1].ToString();
-                                    #region 自动添加逻辑编码 2018-01-10
-                                    string SRV_LOGICAL_CODE = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE"].ToString();
-                                    string areaId = dtMedia.Rows[99 * i + idtM]["areaId"].ToString();
-                                    string SRV_LOGICAL_CODE_GB = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE_GB"].ToString();
-                                    int number = GetGBCodeCount(areaId, SRV_LOGICAL_CODE_GB);
+                        //if (dtMedia.Rows.Count > 100)
+                        //{
+                        //    int mod = dtMedia.Rows.Count / 100 + 1;
+                        //    for (int i = 0; i < mod; i++)
+                        //    {
+                        //        if (mod - 1 > i)
+                        //        {
+                        //            for (int idtM = 0; idtM < 99; idtM++)
+                        //            {
+                        //                Device DV = new Device();
+                        //                DV.SRV_ID = dtMedia.Rows[99 * i + idtM][0].ToString();
+                        //                strSRV_CODE = dtMedia.Rows[99 * i + idtM][1].ToString();
+                        //                #region 自动添加逻辑编码 2018-01-10
+                        //                string SRV_LOGICAL_CODE = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE"].ToString();
+                        //                string areaId = dtMedia.Rows[99 * i + idtM]["areaId"].ToString();
+                        //                string SRV_LOGICAL_CODE_GB = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE_GB"].ToString();
+                        //                int number = GetGBCodeCount(areaId, SRV_LOGICAL_CODE_GB);
 
-                                    LogicalData logicaldata = new LogicalData();
-                                    logicaldata.srvID = dtMedia.Rows[99 * i + idtM]["SRV_ID"].ToString();
-                                    logicaldata.srvAreaID = areaId;
-                                    logicaldata.LogicalCode = SRV_LOGICAL_CODE;
-                                    LogicalCoding.LogicalHelper logical = new LogicalCoding.LogicalHelper(logicaldata);
+                        //                LogicalData logicaldata = new LogicalData();
+                        //                logicaldata.srvID = dtMedia.Rows[99 * i + idtM]["SRV_ID"].ToString();
+                        //                logicaldata.srvAreaID = areaId;
+                        //                logicaldata.LogicalCode = SRV_LOGICAL_CODE;
+                        //                LogicalCoding.LogicalHelper logical = new LogicalCoding.LogicalHelper(logicaldata);
 
-                                    if (number > 1)
-                                    {
-                                        SRV_LOGICAL_CODE_GB = logical.GetLogicalCodel(SRV_LOGICAL_CODE_GB);
+                        //                if (number > 1)
+                        //                {
+                        //                    SRV_LOGICAL_CODE_GB = logical.GetLogicalCodel(SRV_LOGICAL_CODE_GB);
 
-                                        logical.UpdateLogicalCode(logicaldata.srvID, SRV_LOGICAL_CODE_GB);
-                                    }
+                        //                    logical.UpdateLogicalCode(logicaldata.srvID, SRV_LOGICAL_CODE_GB);
+                        //                }
 
-                                    if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB) || SRV_LOGICAL_CODE_GB.Length != 23)
-                                    {
-
-
-                                        SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
-                                        if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
-                                        {
-                                            SetManager("区域码有误请认真核对区域码", Color.Red);
-                                            continue;
-                                        }
-                                    }
-                                    if (!string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
-                                    {
-                                        if (!(SRV_LOGICAL_CODE_GB.Length == 23 && logical.GetCombAreaCode(SRV_LOGICAL_CODE_GB, areaId)))
-                                        {
-                                            SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
-                                        }
-                                    }
-                                    DV.DeviceID = SRV_LOGICAL_CODE_GB;
-                                    #endregion
-
-                                    DV.DeviceName = dtMedia.Rows[99 * i + idtM][5].ToString();
-
-                                    DV.Latitude = dtMedia.Rows[99 * i + idtM]["SRV_GOOGLE"].ToString().Split(',')[0];
-                                    DV.Longitude = dtMedia.Rows[99 * i + idtM]["SRV_GOOGLE"].ToString().Split(',')[1];
-                                    DV.Srv_Mft_Date = dtMedia.Rows[99 * i + idtM]["SRV_MFT_DATE"].ToString();
-                                    DV.UpdateDate = dtMedia.Rows[99 * i + idtM]["updateDate"].ToString();
-                                    DV.DeviceState = dtMedia.Rows[99 * i + idtM]["SRV_RMT_STATUS"].ToString();
-                                    lDev.Add(DV);
-                                }
-                            }
-                            else
-                            {
-                                for (int idtM = 0; idtM < dtMedia.Rows.Count - 99 * i; idtM++)
-                                {
-                                    Device DV = new Device();
-                                    DV.SRV_ID = dtMedia.Rows[99 * i + idtM][0].ToString();
-                                    strSRV_CODE = dtMedia.Rows[99 * i + idtM][1].ToString();
-                                    #region 自动添加逻辑编码 2018-01-10
-                                    string SRV_LOGICAL_CODE = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE"].ToString();
-                                    string areaId = dtMedia.Rows[99 * i + idtM]["areaId"].ToString();
-                                    string SRV_LOGICAL_CODE_GB = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE_GB"].ToString();
-                                    int number = GetGBCodeCount(areaId, SRV_LOGICAL_CODE_GB);
-
-                                    LogicalData logicaldata = new LogicalData();
-                                    logicaldata.srvID = dtMedia.Rows[99 * i + idtM]["SRV_ID"].ToString();
-                                    logicaldata.srvAreaID = areaId;
-                                    logicaldata.LogicalCode = SRV_LOGICAL_CODE;
-                                    LogicalCoding.LogicalHelper logical = new LogicalCoding.LogicalHelper(logicaldata);
-
-                                    if (number > 1)
-                                    {
-                                        SRV_LOGICAL_CODE_GB = logical.GetLogicalCodel(SRV_LOGICAL_CODE_GB);
-
-                                        logical.UpdateLogicalCode(logicaldata.srvID, SRV_LOGICAL_CODE_GB);
-                                    }
-
-                                    if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB) || SRV_LOGICAL_CODE_GB.Length != 23)
-                                    {
+                        //                if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB) || SRV_LOGICAL_CODE_GB.Length != 23)
+                        //                {
 
 
-                                        SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
-                                        if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
-                                        {
-                                            SetManager("区域码有误请认真核对区域码", Color.Red);
-                                            continue;
-                                        }
-                                    }
-                                    if (!string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
-                                    {
-                                        if (!(SRV_LOGICAL_CODE_GB.Length == 23 && logical.GetCombAreaCode(SRV_LOGICAL_CODE_GB, areaId)))
-                                        {
-                                            SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
-                                        }
-                                    }
-                                    DV.DeviceID = SRV_LOGICAL_CODE_GB;
-                                    #endregion
+                        //                    SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
+                        //                    if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
+                        //                    {
+                        //                        SetManager("区域码有误请认真核对区域码", Color.Red);
+                        //                        continue;
+                        //                    }
+                        //                }
+                        //                if (!string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
+                        //                {
+                        //                    if (!(SRV_LOGICAL_CODE_GB.Length == 23 && logical.GetCombAreaCode(SRV_LOGICAL_CODE_GB, areaId)))
+                        //                    {
+                        //                        SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
+                        //                    }
+                        //                }
+                        //                DV.DeviceID = SRV_LOGICAL_CODE_GB;
+                        //                #endregion
 
-                                    DV.DeviceName = dtMedia.Rows[99 * i + idtM][5].ToString();
+                        //                DV.DeviceName = dtMedia.Rows[99 * i + idtM][5].ToString();
 
-                                    DV.Latitude = dtMedia.Rows[99 * i + idtM]["SRV_GOOGLE"].ToString().Split(',')[0];
-                                    DV.Longitude = dtMedia.Rows[99 * i + idtM]["SRV_GOOGLE"].ToString().Split(',')[1];
-                                    DV.Srv_Mft_Date = dtMedia.Rows[99 * i + idtM]["SRV_MFT_DATE"].ToString();
-                                    DV.UpdateDate = dtMedia.Rows[99 * i + idtM]["updateDate"].ToString();
-                                    DV.DeviceState = dtMedia.Rows[99 * i + idtM]["SRV_RMT_STATUS"].ToString();
-                                    lDev.Add(DV);
-                                }
-                            }
+                        //                DV.Latitude = dtMedia.Rows[99 * i + idtM]["SRV_GOOGLE"].ToString().Split(',')[0];
+                        //                DV.Longitude = dtMedia.Rows[99 * i + idtM]["SRV_GOOGLE"].ToString().Split(',')[1];
+                        //                DV.Srv_Mft_Date = dtMedia.Rows[99 * i + idtM]["SRV_MFT_DATE"].ToString();
+                        //                DV.UpdateDate = dtMedia.Rows[99 * i + idtM]["updateDate"].ToString();
+                        //                DV.DeviceState = dtMedia.Rows[99 * i + idtM]["SRV_RMT_STATUS"].ToString();
+                        //                lDev.Add(DV);
+                        //            }
+                        //        }
+                        //        else
+                        //        {
+                        //            for (int idtM = 0; idtM < dtMedia.Rows.Count - 99 * i; idtM++)
+                        //            {
+                        //                Device DV = new Device();
+                        //                DV.SRV_ID = dtMedia.Rows[99 * i + idtM][0].ToString();
+                        //                strSRV_CODE = dtMedia.Rows[99 * i + idtM][1].ToString();
+                        //                #region 自动添加逻辑编码 2018-01-10
+                        //                string SRV_LOGICAL_CODE = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE"].ToString();
+                        //                string areaId = dtMedia.Rows[99 * i + idtM]["areaId"].ToString();
+                        //                string SRV_LOGICAL_CODE_GB = dtMedia.Rows[99 * i + idtM]["SRV_LOGICAL_CODE_GB"].ToString();
+                        //                int number = GetGBCodeCount(areaId, SRV_LOGICAL_CODE_GB);
+
+                        //                LogicalData logicaldata = new LogicalData();
+                        //                logicaldata.srvID = dtMedia.Rows[99 * i + idtM]["SRV_ID"].ToString();
+                        //                logicaldata.srvAreaID = areaId;
+                        //                logicaldata.LogicalCode = SRV_LOGICAL_CODE;
+                        //                LogicalCoding.LogicalHelper logical = new LogicalCoding.LogicalHelper(logicaldata);
+
+                        //                if (number > 1)
+                        //                {
+                        //                    SRV_LOGICAL_CODE_GB = logical.GetLogicalCodel(SRV_LOGICAL_CODE_GB);
+
+                        //                    logical.UpdateLogicalCode(logicaldata.srvID, SRV_LOGICAL_CODE_GB);
+                        //                }
+
+                        //                if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB) || SRV_LOGICAL_CODE_GB.Length != 23)
+                        //                {
 
 
-                            frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
-                            string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
+                        //                    SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
+                        //                    if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
+                        //                    {
+                        //                        SetManager("区域码有误请认真核对区域码", Color.Red);
+                        //                        continue;
+                        //                    }
+                        //                }
+                        //                if (!string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
+                        //                {
+                        //                    if (!(SRV_LOGICAL_CODE_GB.Length == 23 && logical.GetCombAreaCode(SRV_LOGICAL_CODE_GB, areaId)))
+                        //                    {
+                        //                        SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
+                        //                    }
+                        //                }
+                        //                DV.DeviceID = SRV_LOGICAL_CODE_GB;
+                        //                #endregion
 
-                            xmlHeartDoc = rHeart.DeviceInfoResponse(lDev, frdStateName);
-                            CreateXML(xmlHeartDoc, sHeartSourceFilePath + xmlEBMStateFileName);
-                          //  ServerForm.mainFrm.GenerateSignatureFile(sHeartSourceFilePath, frdStateName); //测试注释20180812
-                            ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                            string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                           // SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
-                            HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
-                            lDev.Clear();
-                        }
-                    }
-                    else
-                    {
+                        //                DV.DeviceName = dtMedia.Rows[99 * i + idtM][5].ToString();
+
+                        //                DV.Latitude = dtMedia.Rows[99 * i + idtM]["SRV_GOOGLE"].ToString().Split(',')[0];
+                        //                DV.Longitude = dtMedia.Rows[99 * i + idtM]["SRV_GOOGLE"].ToString().Split(',')[1];
+                        //                DV.Srv_Mft_Date = dtMedia.Rows[99 * i + idtM]["SRV_MFT_DATE"].ToString();
+                        //                DV.UpdateDate = dtMedia.Rows[99 * i + idtM]["updateDate"].ToString();
+                        //                DV.DeviceState = dtMedia.Rows[99 * i + idtM]["SRV_RMT_STATUS"].ToString();
+                        //                lDev.Add(DV);
+                        //            }
+                        //        }
+
+
+                        //        frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
+                        //        string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
+
+                        //        xmlHeartDoc = rHeart.DeviceInfoResponse(lDev, frdStateName);
+                        //        CreateXML(xmlHeartDoc, sHeartSourceFilePath + xmlEBMStateFileName);
+                        //        //   HttpServerFrom .mainFrm.GenerateSignatureFile(sHeartSourceFilePath, frdStateName);  测试注释20180812
+                        //        HttpServerFrom.tar.CreatTar(sHeartSourceFilePath, HttpServerFrom.sSendTarPath, frdStateName);//使用新TAR
+                        //        string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
+                        //        //  SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
+                        //        HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName, 1);//新增于20180824
+                        //        lDev.Clear();
+                        //    }
+                        //}
+                        //else
+                        //{
                         for (int idtM = 0; idtM < dtMedia.Rows.Count; idtM++)
                         {
                             Device DV = new Device();
                             DV.SRV_ID = dtMedia.Rows[idtM][0].ToString();
                             strSRV_CODE = dtMedia.Rows[idtM][1].ToString();
                             strSRV_CODE = dtMedia.Rows[idtM][1].ToString();
-                            #region 自动添加逻辑编码 2018-01-10
-                            string SRV_LOGICAL_CODE = dtMedia.Rows[idtM]["SRV_LOGICAL_CODE"].ToString();
-                            string areaId = dtMedia.Rows[idtM]["areaId"].ToString();
                             string SRV_LOGICAL_CODE_GB = dtMedia.Rows[idtM]["SRV_LOGICAL_CODE_GB"].ToString();
-                            int number = GetGBCodeCount(areaId, SRV_LOGICAL_CODE_GB);
 
-                            LogicalData logicaldata = new LogicalData();
-                            logicaldata.srvID = dtMedia.Rows[idtM]["SRV_ID"].ToString();
-                            logicaldata.srvAreaID = areaId;
-                            logicaldata.LogicalCode = SRV_LOGICAL_CODE;
-                            LogicalCoding.LogicalHelper logical = new LogicalCoding.LogicalHelper(logicaldata);
+                            #region 自动添加逻辑编码 2018-01-10  先注释
+                            //string SRV_LOGICAL_CODE = dtMedia.Rows[idtM]["SRV_LOGICAL_CODE"].ToString();
+                            //string areaId = dtMedia.Rows[idtM]["areaId"].ToString();
+                          
+                            //int number = GetGBCodeCount(areaId, SRV_LOGICAL_CODE_GB);
 
-                            if (number > 1)
-                            {
-                                SRV_LOGICAL_CODE_GB = logical.GetLogicalCodel(SRV_LOGICAL_CODE_GB);
+                            //LogicalData logicaldata = new LogicalData();
+                            //logicaldata.srvID = dtMedia.Rows[idtM]["SRV_ID"].ToString();
+                            //logicaldata.srvAreaID = areaId;
+                            //logicaldata.LogicalCode = SRV_LOGICAL_CODE;
+                            //LogicalCoding.LogicalHelper logical = new LogicalCoding.LogicalHelper(logicaldata);
 
-                                logical.UpdateLogicalCode(logicaldata.srvID, SRV_LOGICAL_CODE_GB);
-                            }
+                            //if (number > 1)
+                            //{
+                            //    SRV_LOGICAL_CODE_GB = logical.GetLogicalCodel(SRV_LOGICAL_CODE_GB);
 
-                            if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB) || SRV_LOGICAL_CODE_GB.Length != 23)
-                            {
+                            //    logical.UpdateLogicalCode(logicaldata.srvID, SRV_LOGICAL_CODE_GB);
+                            //}
+
+                            //if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB) || SRV_LOGICAL_CODE_GB.Length != 23)
+                            //{
 
 
-                                SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
-                                if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
-                                {
-                                    SetManager("区域码有误请认真核对区域码", Color.Red);
-                                    continue;
-                                }
-                            }
-                            if (!string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
-                            {
-                                if (!(SRV_LOGICAL_CODE_GB.Length == 23 && logical.GetCombAreaCode(SRV_LOGICAL_CODE_GB, areaId)))
-                                {
-                                    SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
-                                }
-                            }
-                            DV.DeviceID = SRV_LOGICAL_CODE_GB;
+                            //    SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
+                            //    if (string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
+                            //    {
+                            //        SetManager("区域码有误请认真核对区域码", Color.Red);
+                            //        continue;
+                            //    }
+                            //}
+                            //if (!string.IsNullOrEmpty(SRV_LOGICAL_CODE_GB))
+                            //{
+                            //    if (!(SRV_LOGICAL_CODE_GB.Length == 23 && logical.GetCombAreaCode(SRV_LOGICAL_CODE_GB, areaId)))
+                            //    {
+                            //        SRV_LOGICAL_CODE_GB = logical.GetLogicalAndAddDataBase();
+                            //    }
+                            //}
+
                             #endregion
+
+                            DV.DeviceID = SRV_LOGICAL_CODE_GB;
                             DV.DeviceName = dtMedia.Rows[idtM][5].ToString();
 
                             DV.Latitude = dtMedia.Rows[idtM]["SRV_GOOGLE"].ToString().Split(',')[0];
@@ -3492,7 +3721,6 @@ namespace GRPlatForm
 
                             lDev.Add(DV);
                         }
-                      //  Random rdState = new Random();
                         frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
                         string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
 
@@ -3503,31 +3731,33 @@ namespace GRPlatForm
 
                         ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
                         string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                      //  SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
-                        HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
+                        // SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
+                        HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);//新增于20180824
+                                                                                             // }
+
                     }
+                    else
+                    {
+                        Random rdState = new Random();
+                        frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
+                        string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
 
+                        xmlHeartDoc = rHeart.DeviceInfoResponse(lDev, frdStateName);
+                        CreateXML(xmlHeartDoc, sHeartSourceFilePath + xmlEBMStateFileName);
+
+                        //  HttpServerFrom .mainFrm.GenerateSignatureFile(sHeartSourceFilePath, frdStateName);  测试注释20180812
+
+                        ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
+                        string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
+                        // SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
+                        HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);//新增于20180824
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    Random rdState = new Random();
-                    frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
-                    string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
-
-                    xmlHeartDoc = rHeart.DeviceInfoResponse(lDev, frdStateName);
-                    CreateXML(xmlHeartDoc, sHeartSourceFilePath + xmlEBMStateFileName);
-
-                    //  HttpServerFrom .mainFrm.GenerateSignatureFile(sHeartSourceFilePath, frdStateName);  测试注释20180812
-
-                    ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                    string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                   // SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
-                    HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
                 }
-            }
-            catch (Exception ex)
-            {
-            }
+            });
+              
 
         }
 
@@ -3544,35 +3774,7 @@ namespace GRPlatForm
         //平台状态上报
         private void button3_Click(object sender, EventArgs e)
         {
-            XmlDocument xmlHeartDoc = new XmlDocument();
-            responseXML rHeart = new responseXML();
-            rHeart.SourceAreaCode = strSourceAreaCode;
-            rHeart.SourceType = strSourceType;
-            rHeart.SourceName = strSourceName;
-            rHeart.SourceID = strSourceID;
-            rHeart.sHBRONO = strHBRONO;
-
-            ServerForm.DeleteFolder(sHeartSourceFilePath);//删除原有XML发送文件的文件夹下的XML
-            string frdStateName = "";
-            try
-            {
-                Random rdState = new Random();
-                frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
-                string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
-
-                xmlHeartDoc = rHeart.platformstateInfoResponse(frdStateName);
-                CreateXML(xmlHeartDoc, sHeartSourceFilePath + xmlEBMStateFileName);
-
-                //  HttpServerFrom .mainFrm.GenerateSignatureFile(sHeartSourceFilePath, frdStateName); 测试注释 20180812
-
-                ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-               // SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
-                HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
-            }
-            catch
-            {
-            }
+            UpdateEBRPSState();
         }
 
         //终端信息上报
@@ -3812,110 +4014,7 @@ namespace GRPlatForm
         /// <param name="e"></param>
         protected void SrvStateUP(object source, System.Timers.ElapsedEventArgs e)
         {
-            string strOMDType = ReturnInfrom(4);
-            if (!string.IsNullOrWhiteSpace(strOMDType))
-            {
-                StateOrInfoUp(strOMDType);
-            }
-
-            #region 以下内容未使用
-            /*
-            DeleteFolder(ServerForm.sSendTarPath);
-            //t.Enabled = false;
-            XmlDocument xmlHeartDoc = new XmlDocument();
-            responseXML rHeart = new responseXML();
-            rHeart.SourceAreaCode = strSourceAreaCode;
-            rHeart.SourceType = strSourceType;
-            rHeart.SourceName = strSourceName;
-            rHeart.SourceID = strSourceID;
-            rHeart.sHBRONO = strHBRONO;
-            string MediaSql = "";
-            string strSRV_ID = "";
-            string strSRV_CODE = "";
-            ServerForm.DeleteFolder(SRVSSourceFilePath);//删除原有XML发送文件的文件夹下的XML
-            string frdStateName = "";
-            List<Device> lDev = new List<Device>();
-            try
-            {
-                MediaSql = "select top(20) SRV_ID,SRV_CODE from SRV";
-                DataTable dtMedia = mainForm.dba.getQueryInfoBySQL(MediaSql);
-                if (dtMedia != null && dtMedia.Rows.Count > 0)
-                {
-                    //if (dtMedia.Rows.Count > 100)
-                    {
-                        int mod = dtMedia.Rows.Count / 100 + 1;
-                        //for (int i = 0; i < mod; i++)
-                        {
-                            for (int idtM = 0; idtM < dtMedia.Rows.Count; idtM++)
-                            {
-                                Device DV = new Device();
-                                strSRV_ID = dtMedia.Rows[idtM][0].ToString().Trim();
-                                strSRV_CODE = dtMedia.Rows[idtM][1].ToString();
-                                DV.DeviceID = strSRV_ID;
-                                DV.DeviceName = strSRV_ID;
-                                lDev.Add(DV);
-                            }
-                            Random rdState = new Random();
-                            frdStateName = "10" + rHeart.sHBRONO + "0000000000000" + rdState.Next(100, 999).ToString();
-                            string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
-
-                            xmlHeartDoc = rHeart.DeviceStateResponse(lDev, frdStateName);
-                            CreateXML(xmlHeartDoc, SRVSSourceFilePath + xmlEBMStateFileName);
-                            ServerForm.mainFrm.GenerateSignatureFile(SRVSSourceFilePath, frdStateName);
-                            ServerForm.tar.CreatTar(SRVSSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                            string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                            HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
-                        }
-                    }
-                    //else
-                    //{
-                    //    for (int idtM = 0; idtM < dtMedia.Rows.Count; idtM++)
-                    //    {
-                    //        Device DV = new Device();
-                    //        strSRV_ID = dtMedia.Rows[idtM][0].ToString();
-                    //        strSRV_CODE = dtMedia.Rows[idtM][1].ToString();
-                    //        DV.DeviceID = strSRV_ID;
-                    //        DV.DeviceName = strSRV_ID;
-                    //        lDev.Add(DV);
-                    //    }
-                    //    Random rdState = new Random();
-                    //    frdStateName = "10" + rHeart.sHBRONO + "0000000000000" + rdState.Next(100, 999).ToString();
-                    //    string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
-
-                    //    xmlHeartDoc = rHeart.DeviceStateResponse(lDev, frdStateName);
-                    //    CreateXML(xmlHeartDoc, SRVSSourceFilePath + xmlEBMStateFileName);
-                    //    ServerForm.mainFrm.GenerateSignatureFile(SRVSSourceFilePath, frdStateName);
-                    //    ServerForm.tar.CreatTar(SRVSSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                    //    string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                    //    HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
-                    //}
-
-                }
-                else
-                {
-                    Random rdState = new Random();
-                    frdStateName = "10" + rHeart.sHBRONO + "0000000000000" + rdState.Next(100, 999).ToString();
-                    string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
-
-                    xmlHeartDoc = rHeart.DeviceStateResponse(lDev, frdStateName);
-                    CreateXML(xmlHeartDoc, SRVSSourceFilePath + xmlEBMStateFileName);
-                    ServerForm.mainFrm.GenerateSignatureFile(SRVSSourceFilePath, frdStateName);
-                    ServerForm.tar.CreatTar(SRVSSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                    string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                    HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
-                }
-            }
-            catch (Exception err)
-            {
-                Console.WriteLine("设备状态上传:" + DateTime.Now.ToString() + err.Message);
-                // Thread.Sleep(50);
-                // t.Enabled = true;
-            }
-            //Thread.Sleep(5000);
-            //t.Enabled = true;
-            Thread.Sleep(50);
-            */
-            #endregion
+            UpdateEBRDTState();
         }
 
         /// <summary>
@@ -3923,130 +4022,7 @@ namespace GRPlatForm
         /// </summary>
         private void SrvInfromUP(object source, System.Timers.ElapsedEventArgs e)
         {
-            string strOMDType = ReturnInfrom(2);
-            if (!string.IsNullOrWhiteSpace(strOMDType))
-            {
-                StateOrInfoUp(strOMDType);
-            }
-
-            #region 以下内容未使用
-            /*
-            DeleteFolder(ServerForm.sSendTarPath);
-            //t.Enabled = false;
-            XmlDocument xmlHeartDoc = new XmlDocument();
-            responseXML rHeart = new responseXML();
-            rHeart.SourceAreaCode = strSourceAreaCode;
-            rHeart.SourceType = strSourceType;
-            rHeart.SourceName = strSourceName;
-            rHeart.SourceID = strSourceID;
-            rHeart.sHBRONO = strHBRONO;
-            string MediaSql = "";
-            string strSRV_ID = "";
-            string strSRV_CODE = "";
-            ServerForm.DeleteFolder(SRVISourceFilePath);//删除原有XML发送文件的文件夹下的XML
-            string frdStateName = "";
-            List<Device> lDev = new List<Device>();
-            try
-            {
-                MediaSql = "select SRV_ID,SRV_CODE,SRV_GOOGLE from SRV";
-                DataTable dtMedia = mainForm.dba.getQueryInfoBySQL(MediaSql);
-                if (dtMedia != null && dtMedia.Rows.Count > 0)
-                {
-                    // if (dtMedia.Rows.Count > 100)
-                    {
-                        int mod = dtMedia.Rows.Count / 100 + 1;
-                        //for (int i = 0; i < mod; i++)
-                        {
-                            for (int idtM = 0; idtM < dtMedia.Rows.Count; idtM++)
-                            {
-                                string TrLL = dtMedia.Rows[idtM][2].ToString();
-                                Device DV = new Device();
-                                strSRV_ID = dtMedia.Rows[idtM][0].ToString();
-                                strSRV_CODE = dtMedia.Rows[idtM][1].ToString();
-                                DV.DeviceID = strSRV_ID;
-                                DV.DeviceName = strSRV_ID; if (TrLL != "")
-                                {
-                                    string[] str = TrLL.Split(',');
-                                    if (str.Length >= 2)
-                                    {
-                                        DV.Longitude = str[1];
-                                        DV.Latitude = str[0];
-                                    }
-                                    else
-                                    {
-                                        //泗阳坐标{118.68,99.73}
-                                        DV.Longitude = "118.68";
-                                        DV.Latitude = "33.73";
-                                    }
-                                }
-                                else
-                                {
-                                    DV.Longitude = "118.68";
-                                    DV.Latitude = "33.73";
-                                }
-                                lDev.Add(DV);
-                            }
-                            Random rdState = new Random();
-                            frdStateName = "10" + rHeart.sHBRONO + "0000000000000" + rdState.Next(100, 999).ToString();
-                            string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
-
-                            xmlHeartDoc = rHeart.DeviceInfoResponse(lDev, frdStateName);
-                            CreateXML(xmlHeartDoc, SRVISourceFilePath + xmlEBMStateFileName);
-                            ServerForm.mainFrm.GenerateSignatureFile(SRVISourceFilePath, frdStateName);
-                            ServerForm.tar.CreatTar(SRVISourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                            string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                            HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
-                        }
-                    }
-                    //else
-                    //{
-                    //    for (int idtM = 0; idtM < dtMedia.Rows.Count; idtM++)
-                    //    {
-                    //        Device DV = new Device();
-                    //        strSRV_ID = dtMedia.Rows[idtM][0].ToString();
-                    //        strSRV_CODE = dtMedia.Rows[idtM][1].ToString();
-                    //        DV.DeviceID = strSRV_ID;
-                    //        DV.DeviceName = strSRV_ID;
-                    //        lDev.Add(DV);
-                    //    }
-                    //    Random rdState = new Random();
-                    //    frdStateName = "10" + rHeart.sHBRONO + "0000000000000" + rdState.Next(100, 999).ToString();
-                    //    string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
-
-                    //    xmlHeartDoc = rHeart.DeviceInfoResponse(lDev, frdStateName);
-                    //    CreateXML(xmlHeartDoc, SRVISourceFilePath + xmlEBMStateFileName);
-
-                    //    ServerForm.mainFrm.GenerateSignatureFile(SRVISourceFilePath, frdStateName);
-
-                    //    ServerForm.tar.CreatTar(SRVISourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                    //    string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                    //    HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
-                    //}
-
-                }
-                else
-                {
-                    Random rdState = new Random();
-                    frdStateName = "10" + rHeart.sHBRONO + "0000000000000" + rdState.Next(100, 999).ToString();
-                    string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
-
-                    xmlHeartDoc = rHeart.DeviceInfoResponse(lDev, frdStateName);
-                    CreateXML(xmlHeartDoc, SRVISourceFilePath + xmlEBMStateFileName);
-
-                    ServerForm.mainFrm.GenerateSignatureFile(SRVISourceFilePath, frdStateName);
-
-                    ServerForm.tar.CreatTar(SRVISourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                    string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                    HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
-                }
-            }
-            catch
-            {
-                Thread.Sleep(50);
-            }
-            Thread.Sleep(5000);
-            */
-            #endregion
+            UpdateEBRDTInfo();
         }
 
         /// <summary>
@@ -4054,47 +4030,7 @@ namespace GRPlatForm
         /// </summary>
         private void TerraceStateUP(object source, System.Timers.ElapsedEventArgs e)
         {
-            string strOMDType = ReturnInfrom(3);
-            if (!string.IsNullOrWhiteSpace(strOMDType))
-            {
-                StateOrInfoUp(strOMDType);
-            }
-
-            #region 以下内容未使用
-            /*
-            XmlDocument xmlHeartDoc = new XmlDocument();
-            responseXML rHeart = new responseXML();
-            rHeart.SourceAreaCode = strSourceAreaCode;
-            rHeart.SourceType = strSourceType;
-            rHeart.SourceName = strSourceName;
-            rHeart.SourceID = strSourceID;
-            rHeart.sHBRONO = strHBRONO;
-
-            ServerForm.DeleteFolder(TerraceSSourceFilePath);//删除原有XML发送文件的文件夹下的XML
-            string frdStateName = "";
-            try
-            {
-                Random rdState = new Random();
-                frdStateName = "10" + rHeart.sHBRONO + "0000000000000" + rdState.Next(100, 999).ToString();
-                string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
-
-                xmlHeartDoc = rHeart.platformstateInfoResponse(frdStateName);
-                CreateXML(xmlHeartDoc, TerraceSSourceFilePath + xmlEBMStateFileName);
-
-                ServerForm.mainFrm.GenerateSignatureFile(TerraceSSourceFilePath, frdStateName);
-
-                ServerForm.tar.CreatTar(TerraceSSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
-            }
-            catch
-            {
-            }
-
-            DeleteFolder(ServerForm.sSendTarPath);
-            Thread.Sleep(50);
-            */
-            #endregion
+            UpdateEBRPSState();
         }
 
         /// <summary>
@@ -4102,43 +4038,17 @@ namespace GRPlatForm
         /// </summary>
         private void TerraceInfrom(object source, System.Timers.ElapsedEventArgs e)
         {
-            string strOMDType = ReturnInfrom(1);
-            if (!string.IsNullOrWhiteSpace(strOMDType))
-            {
-                StateOrInfoUp(strOMDType);
-            }
+            UpdateEBRPSInfo();
+        }
 
-            #region 以下内容未使用
-            /*
-            XmlDocument xmlHeartDoc = new XmlDocument();
-            responseXML rHeart = new responseXML();
-            rHeart.SourceAreaCode = strSourceAreaCode;
-            rHeart.SourceType = strSourceType;
-            rHeart.SourceName = strSourceName;
-            rHeart.SourceID = strSourceID;
-            rHeart.sHBRONO = strHBRONO;
-
-            ServerForm.DeleteFolder(TerradcISourceFilePath);//删除原有XML发送文件的文件夹下的XML
-            string frdStateName = "";
-            try
-            {
-                Random rdState = new Random();
-                frdStateName = "10" + rHeart.sHBRONO + "0000000000000" + rdState.Next(100, 999).ToString();
-                string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
-
-                xmlHeartDoc = rHeart.platformInfoResponse(frdStateName);
-                CreateXML(xmlHeartDoc, TerradcISourceFilePath + xmlEBMStateFileName);
-                ServerForm.mainFrm.GenerateSignatureFile(TerradcISourceFilePath, frdStateName);
-                ServerForm.tar.CreatTar(TerradcISourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
-                string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
-                HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);
-            }
-            catch
-            {
-            }
-            Thread.Sleep(1000);
-            */
-            #endregion
+        /// <summary>
+        /// 播发记录上报
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="e"></param>
+        private void PlayRecordingTT(object source, System.Timers.ElapsedEventArgs e)
+        {
+            PlaybackRecordNew(PlaybackRecordType.Report, RecordptType.Full);
         }
 
         private void CreateXML(XmlDocument XD, string Path)
@@ -4685,7 +4595,25 @@ namespace GRPlatForm
             Console.WriteLine(strOrder);
             return InstallList;
         }
+        /// <summary>
+        /// 检查数据库中终端数量是否有变化 为了演示效果偷懒的做法  
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="e"></param>
+        private void CheckEBRDTInfoProcess(object source, System.Timers.ElapsedEventArgs e)
+        {
+            string MediaSql = "select  SRV.SRV_ID,areaId,SRV.SRV_CODE,SRV_GOOGLE, SRV_PHYSICAL_CODE,srv_detail,SRV_LOGICAL_CODE,SRV_MFT_DATE,updateDate,SRV_RMT_STATUS,SRV_LOGICAL_CODE_GB  FROM SRV  left join Srvtype on   SRV.DeviceTypeId= Srvtype .srv_id ";
+            DataTable dtMedia = mainForm.dba.getQueryInfoBySQL(MediaSql);
 
+            if (dtMedia.Rows.Count != SingletonInfo.GetInstance().TerminalCount)
+            {
+                SingletonInfo.GetInstance().TerminalCount = dtMedia.Rows.Count;
+                UpdateEBRDTInfo();
+                UpdateEBRDTState();
+
+            }
+
+        }
 
         private void FindUserInfo(string Name)
         {
@@ -4696,7 +4624,14 @@ namespace GRPlatForm
                 MQUserInfo.USER_PRIORITY = dtUser.Rows[0]["USER_PRIORITY"].ToString();
                 MQUserInfo.TsCmd_UserID = dtUser.Rows[0]["USER_ID"].ToString();
                 MQUserInfo.USER_ORG_CODE = dtUser.Rows[0]["USER_ORG_CODE"].ToString();
-              //  MQUserInfo.TsCmd_ValueID = dtUser.Rows[0]["ORG_ID"].ToString();
+
+
+                SingletonInfo.GetInstance().USER_PRIORITY = MQUserInfo.USER_PRIORITY;
+                SingletonInfo.GetInstance().TsCmd_UserID = MQUserInfo.TsCmd_UserID;
+                SingletonInfo.GetInstance().USER_ORG_CODE = MQUserInfo.USER_ORG_CODE;
+
+                //  MQUserInfo.TsCmd_ValueID = dtUser.Rows[0]["ORG_ID"].ToString();
+                //  SingletonInfo.GetInstance().TsCmd_ValueID_ = MQUserInfo.TsCmd_ValueID;
             }
         }
 
@@ -4749,6 +4684,284 @@ namespace GRPlatForm
             fromFile.Close();
             toFile.Close();
             return true;
+        }
+
+        private void button5_Click_1(object sender, EventArgs e)
+        {
+           // PlaybackRecord(null, null, PlaybackRecordType.Report, RecordptType.Full);
+            PlaybackRecordNew(PlaybackRecordType.Report, RecordptType.Full);
+        }
+
+
+        private void PlaybackRecordNew(PlaybackRecordType Type, RecordptType RecordType)
+        {
+            string StartTime = DateTime.Now.AddDays(-5).ToString();
+            string EndTime = DateTime.Now.ToString();
+
+            SingletonInfo.GetInstance().EBMBrdItems.Clear();
+
+            string MediaSQL = "select * from TSCMDSTORE   WHERE  TsCmd_Type In ('音源播放','播放视频','播放视频节目','文本播放')  and TsCmd_Mode='区域'";
+            string MediaWhere = "";
+            if (!string.IsNullOrEmpty(StartTime) && !string.IsNullOrEmpty(EndTime))
+            {
+                MediaWhere = " AND tsCmd_Date between '" + StartTime + "' and '" + EndTime + "'";
+            }
+           
+            MediaSQL += MediaWhere;
+            DataTable dtMedia = mainForm.dba.getQueryInfoBySQL(MediaSQL);
+
+
+            string MediaSQL1 = "select * from PlayRecordList";
+            string MediaWhere1 = "";
+            if (!string.IsNullOrEmpty(StartTime) && !string.IsNullOrEmpty(EndTime))
+            {
+                MediaWhere1 = " where PRL_STARTTIME between '" + StartTime + "' and '" + EndTime + "'";
+            }
+           
+            MediaSQL1 += MediaWhere1;
+            DataTable dtMedia1 = mainForm.dba.getQueryInfoBySQL(MediaSQL1);
+
+
+            #region  dtMedia的数据处理
+            if (dtMedia.Rows.Count>0)
+            {
+
+                foreach (DataRow item in dtMedia.Rows)
+                {
+                    EBMBrdItems EBItem = new EBMBrdItems();
+
+                    EBItem.TunersPlayRecording = new TunersPlayRecording();
+                    EBItem.TunersPlayRecording.EmergencyBroadcastID = "TsCmd_ID_"+item["TsCmd_ID"].ToString();
+
+                    switch (item["TsCmd_Type"].ToString())
+                    {
+
+                        case "音源播放":
+                            EBItem.TunersPlayRecording.BroadcastType = "实时音频";
+                            break;
+                        default:
+                            EBItem.TunersPlayRecording.BroadcastType = "文件";
+                            break;
+                    }
+                    EBItem.TunersPlayRecording.BroadcastStartTime= item["TsCmd_ExcuteTime"].ToString();
+                    EBItem.TunersPlayRecording.BroadcastEndTime = "--";
+
+                    string[] pptmp = item["TsCmd_ValueID"].ToString().Split(',');
+                    string tmpOverlayArea = "";
+                    string tmpAreaCode = "";
+                    if (pptmp.Length > 1)
+                    {
+                        foreach (string singitem in pptmp)
+                        {
+                            tmpOverlayArea += "," + SingletonInfo.GetInstance().DicOrganizationCode[singitem].ORG_DETAIL;
+                            tmpAreaCode += "," + SingletonInfo.GetInstance().DicOrganizationCode[singitem].GB_CODE;
+                        }
+                        tmpOverlayArea = tmpOverlayArea.Substring(1, tmpOverlayArea.Length-1);
+                        tmpAreaCode = tmpAreaCode.Substring(1, tmpAreaCode.Length - 1);
+                    }
+                    else
+                    {
+                        tmpOverlayArea = SingletonInfo.GetInstance().DicOrganizationCode[pptmp[0]].ORG_DETAIL;
+                        tmpAreaCode = SingletonInfo.GetInstance().DicOrganizationCode[pptmp[0]].GB_CODE;
+                    }
+                    EBItem.TunersPlayRecording.OverlayArea = tmpOverlayArea;
+
+
+                    EBItem.EBM = new model.EBM();
+
+                    if (string.IsNullOrEmpty(item["EBM_ID"].ToString()))
+                    {
+                        EBItem.EBM.EBMID ="N/A";
+                    }
+                    else
+                    {
+                        EBItem.EBM.EBMID = item["EBM_ID"].ToString();
+                    }
+                  
+                    EBItem.EBM.MsgContent = new model.MsgContent();
+                    EBItem.EBM.MsgContent.LanguageCode = "zho";
+
+                    if (string.IsNullOrEmpty(item["MsgTitle"].ToString()))
+                    {
+                        EBItem.EBM.MsgContent.MsgTitle = "大喇叭广播消息";
+                    }
+                    else
+                    {
+                        EBItem.EBM.MsgContent.MsgTitle = item["MsgTitle"].ToString();
+                    }
+                    
+                    EBItem.EBM.MsgContent.MsgDesc = "重庆市江津区应急广播";
+
+                    if (string.IsNullOrEmpty(item["AreaCode"].ToString()))
+                    {
+                        EBItem.EBM.MsgContent.AreaCode = tmpAreaCode;
+                    }
+                    else
+                    {
+                        EBItem.EBM.MsgContent.AreaCode = item["AreaCode"].ToString();
+                    }
+                  
+                    string StateCodetmp = item["TsCmd_Status"].ToString();
+                    switch (StateCodetmp)
+                    {
+                        case "0":
+                            EBItem.BrdStateCode = "0";
+                            EBItem.BrdStateDesc = "未处理";
+                            break;
+                        case "1":
+                            EBItem.BrdStateCode = "3";
+                            EBItem.BrdStateDesc = "播发成功";//合版本
+                            break;
+                    }
+                    SingletonInfo.GetInstance().EBMBrdItems.Add(EBItem);
+                }
+            }
+            #endregion
+
+            #region dtMedia1
+            if (dtMedia1.Rows.Count > 0)
+            {
+                foreach (DataRow item in dtMedia1.Rows)
+                {
+                    EBMBrdItems EBItem = new EBMBrdItems();
+
+                    EBItem.TunersPlayRecording = new TunersPlayRecording();
+                    EBItem.TunersPlayRecording.EmergencyBroadcastID = "PRL_ID_" + item["PRL_ID"].ToString();
+                    EBItem.TunersPlayRecording.BroadcastType = item["PRL_EVN_SOURCE"].ToString() + "插播";
+                    EBItem.TunersPlayRecording.BroadcastStartTime = item["PRL_STARTTIME"].ToString();
+                    EBItem.TunersPlayRecording.BroadcastEndTime = item["PRL_ENDTIME"].ToString();
+                    EBItem.TunersPlayRecording.OverlayArea = item["PRL_AREADETAIL"].ToString();
+
+
+                    EBItem.EBM = new model.EBM();
+                    EBItem.EBM.EBMID = "--";
+                    EBItem.EBM.MsgContent = new model.MsgContent();
+                    EBItem.EBM.MsgContent.LanguageCode = "zho";
+                    EBItem.EBM.MsgContent.MsgTitle = "大喇叭广播消息";
+                    EBItem.EBM.MsgContent.MsgDesc = "重庆市江津区应急广播";
+                    foreach (var  orinfo in SingletonInfo.GetInstance().DicOrganizationCode)
+                    {
+                        if (((OrganizationInfo)orinfo.Value).ORG_DETAIL== item["PRL_AREADETAIL"].ToString())
+                        {
+                            EBItem.EBM.MsgContent.AreaCode = ((OrganizationInfo)orinfo.Value).GB_CODE;
+                        }
+                    }
+
+            
+
+
+                    string StateCodetmp = item["PRL_STATUS"].ToString();
+                    switch (StateCodetmp)
+                    {
+                       
+                        case "正常":
+                        case "插播结束":
+                            EBItem.BrdStateCode = "3";
+                            EBItem.BrdStateDesc = "播发成功";
+                            break;
+                        default:
+                            EBItem.BrdStateCode = "0";
+                            EBItem.BrdStateDesc = "未处理";
+                            break;
+                    }
+                    SingletonInfo.GetInstance().EBMBrdItems.Add(EBItem);
+                }
+            }
+            #endregion
+
+
+            string frdStateName = "";
+            XmlDocument xmlHeartDoc = new XmlDocument();
+            responseXML rHeart = new responseXML();
+            rHeart.SourceAreaCode = strSourceAreaCode;
+            rHeart.SourceType = strSourceType;
+            rHeart.SourceName = strSourceName;
+            rHeart.SourceID = strSourceID;
+            rHeart.sHBRONO = strHBRONO;
+
+            ServerForm.DeleteFolder(sHeartSourceFilePath);//删除原有XML发送文件的文件夹下的XML
+            SetManager("播发记录上报:" + DateTime.Now.ToString(), Color.Green);
+            switch (Type)
+            {
+                case PlaybackRecordType.Report:
+                case PlaybackRecordType.request:
+                    List<string> Eid = new List<string>();
+                    Random rdState = new Random();
+                    frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
+                    string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
+
+                    xmlHeartDoc = rHeart.DevicePlaybackNew(frdStateName);
+                    CreateXML(xmlHeartDoc, sHeartSourceFilePath + xmlEBMStateFileName);
+                    //    HttpServerFrom .mainFrm.GenerateSignatureFile(sHeartSourceFilePath, frdStateName);测试注释20180812
+                    ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
+
+                    break;
+            }
+            try
+            {
+                string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
+                //  SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
+                HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);//新增于20180824
+            }
+            catch
+            {
+
+            }
+        }
+
+
+        private void PlaybackRecord(string StartTime, string EndTime, PlaybackRecordType Type, RecordptType RecordType)
+        {
+
+            Task.Factory.StartNew(() =>
+            {
+                string MediaSQL = "select * from TSCMDSTORE   WHERE  TsCmd_Type In ('音源播放','播放视频','播放视频节目','文本播放')  left join playRecord on PR_SourceID = TsCmd_ID";
+                string MediaWhere = "";
+                if (!string.IsNullOrEmpty(StartTime) && !string.IsNullOrEmpty(EndTime))
+                {
+                    MediaWhere = " where tsCmd_Date between '" + StartTime + "' and '" + EndTime + "'";
+                }
+                string frdStateName = "";
+                MediaSQL += MediaWhere;
+                DataTable dtMedia = mainForm.dba.getQueryInfoBySQL(MediaSQL);
+                XmlDocument xmlHeartDoc = new XmlDocument();
+                responseXML rHeart = new responseXML();
+                rHeart.SourceAreaCode = strSourceAreaCode;
+                rHeart.SourceType = strSourceType;
+                rHeart.SourceName = strSourceName;
+                rHeart.SourceID = strSourceID;
+                rHeart.sHBRONO = strHBRONO;
+
+                ServerForm.DeleteFolder(sHeartSourceFilePath);//删除原有XML发送文件的文件夹下的XML
+                SetManager("播发记录上报:" + DateTime.Now.ToString(), Color.Green);
+                switch (Type)
+                {
+                    case PlaybackRecordType.Report:
+                    case PlaybackRecordType.request:
+                        List<string> Eid = new List<string>();
+                        Random rdState = new Random();
+                        frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
+                        string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
+
+                        xmlHeartDoc = rHeart.DevicePlayback(frdStateName, dtMedia);
+                        CreateXML(xmlHeartDoc, sHeartSourceFilePath + xmlEBMStateFileName);
+                        //    HttpServerFrom .mainFrm.GenerateSignatureFile(sHeartSourceFilePath, frdStateName);测试注释20180812
+                        ServerForm.tar.CreatTar(sHeartSourceFilePath, ServerForm.sSendTarPath, frdStateName);//使用新TAR
+
+                        break;
+                }
+                try
+                {
+                    string sHeartBeatTarName = sSendTarPath + "\\" + "EBDT_" + frdStateName + ".tar";
+                    //  SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
+                    HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);//新增于20180824
+                }
+                catch
+                {
+
+                }
+            });
+            
         }
     }
 }

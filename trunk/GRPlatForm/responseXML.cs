@@ -123,9 +123,6 @@ namespace GRPlatForm
         {
 
             model.EDB_EBRBS.EBD EDB = new EDB_EBRBS.EBD();
-
-
-
             //加入XML的声明段落,Save方法不再xml上写出独立属性
             EDB.EBDVersion = "1.0";
             EDB.EBDID = strebdid;
@@ -148,7 +145,7 @@ namespace GRPlatForm
 
             EDB.EBMStateResponse.Coverage.CoverageRate = "1";
             //需要修
-            EDB.EBMStateResponse.Coverage.AreaCode = "341523000000";//"003609810101AA"
+            EDB.EBMStateResponse.Coverage.AreaCode = ebdsr.EBM.MsgContent.AreaCode;// "341523000000";//"003609810101AA"
 
             EDB.EBMStateResponse.Coverage.ResBrdStat = "1,1,1,1";
             //   string strXML = XmlSerialize<model.EDB_EBRBS.EBD>(EDB);
@@ -411,6 +408,99 @@ namespace GRPlatForm
                 }
             }
             return xmlDoc;
+        }
+
+
+
+
+        public XmlDocument DevicePlaybackNew(string strebdid)
+        {
+            model.EDB_EBRBS.EBD EDB = new EDB_EBRBS.EBD();
+            EDB.EBDVersion = "1.0";
+            EDB.EBDID = strebdid;
+            EDB.EBDType = "EBMBrdLog";
+            EDB.SRC = new model.SRC();
+            EDB.SRC.EBRID = sHBRONO;
+            EDB.EBDTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+            EDB.SRC.URL = serverini.ReadValue("PLATFORMINFO", "URL");
+            EDB.EBMBrdLog = new EBMBrdLog();
+            EDB.EBMBrdLog.EBMBrdItem = new List<EBMBrdItems>();
+            EDB.EBMBrdLog.EBMBrdItem = SingletonInfo.GetInstance().EBMBrdItems;
+            string strXML = XmlSerialize<EDB_EBRBS.EBD>(EDB).Replace("<EBMBrdItem>", "").Replace("</EBMBrdItem>", "").Replace("EBMBrdItems", "EBMBrdItem");
+
+
+            XmlDocument document = new XmlDocument();
+            document.LoadXml(strXML);
+            return document;
+        }
+
+        public XmlDocument DevicePlayback(string strebdid, DataTable E_ID)
+        {
+            model.EDB_EBRBS.EBD EDB = new EDB_EBRBS.EBD();
+            //   EDB.EBMStateResponse = new model.EBMStateResponse();
+
+            //加入XML的声明段落,Save方法不再xml上写出独立属性
+            EDB.EBDVersion = "1.0";
+            EDB.EBDID = strebdid;
+            EDB.EBDType = "EBMBrdLog";
+            EDB.SRC = new model.SRC();
+            EDB.SRC.EBRID = sHBRONO;
+            EDB.EBDTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+            EDB.SRC.URL = serverini.ReadValue("PLATFORMINFO", "URL");
+            EDB.EBMBrdLog = new EBMBrdLog();
+            EDB.EBMBrdLog.EBMBrdItem = new List<EBMBrdItems>();
+            foreach (DataRow item in E_ID.Rows)
+            {
+                EBMBrdItems EBItem = new EBMBrdItems();
+                EBItem.EBM = new model.EBM();
+                EBItem.EBM.EBMID = item["EBM_ID"].ToString();
+                EBItem.EBM.MsgContent = new model.MsgContent();
+                EBItem.EBM.MsgContent.LanguageCode = "zho";
+                EBItem.EBM.MsgContent.MsgTitle = item["MsgTitle"].ToString();
+                EBItem.EBM.MsgContent.MsgDesc = "";
+                EBItem.EBM.MsgContent.AreaCode = item["AreaCode"].ToString();
+                string StateCodetmp = item["TsCmd_Status"].ToString();
+                switch (StateCodetmp)
+                {
+                    case "0":
+                        EBItem.BrdStateCode = "0";
+                        EBItem.BrdStateDesc = "未处理";
+
+
+                        break;
+                    case "1":
+                        string flag = item["TsCmd_ID"].ToString();
+
+                        string SQLSTR = "select * from playRecord where PR_SourceID =" + flag;
+
+                        DataTable dtMediaTMP = mainForm.dba.getQueryInfoBySQL(SQLSTR);
+
+                        if (dtMediaTMP.Rows.Count > 0)
+                        {
+                            EBItem.BrdStateCode = "2";
+                            EBItem.BrdStateDesc = "播发中";//合版本
+                        }
+                        else
+                        {
+                            EBItem.BrdStateCode = "3";
+                            EBItem.BrdStateDesc = "播发成功";//合版本
+                        }
+
+                        break;
+                }
+
+                EDB.EBMBrdLog.EBMBrdItem.Add(EBItem);
+            }
+            //EBMBrdItem
+
+            string strXML = XmlSerialize<EDB_EBRBS.EBD>(EDB).Replace("<EBMBrdItem>", "").Replace("</EBMBrdItem>", "").Replace("EBMBrdItems", "EBMBrdItem");
+
+
+            XmlDocument document = new XmlDocument();
+            document.LoadXml(strXML);
+            return document;
         }
 
         /// <summary>
@@ -1257,121 +1347,46 @@ namespace GRPlatForm
 
         public XmlDocument DeviceInfoResponse(List<Device> lDev, string strebdid)
         {
-            XmlDocument xmlDoc = new XmlDocument();
-            #region 标准头部
-            //加入XML的声明段落,Save方法不再xml上写出独立属性
-            xmlDoc.AppendChild(xmlDoc.CreateXmlDeclaration("1.0", "utf-8", null));
-            //加入根元素
-            XmlElement xmlElem = xmlDoc.CreateElement("", "EBD", "");
-            xmlDoc.AppendChild(xmlElem);
-            XmlAttribute xmlns = xmlDoc.CreateAttribute("xmlns:xs");
-            xmlns.Value = "http://www.w3.org/2001/XMLSchema";
-            xmlElem.Attributes.Append(xmlns);
-
-            //Version
-            XmlElement xmlProtocolVer = xmlDoc.CreateElement("EBDVersion");
-            xmlProtocolVer.InnerText = "1.0";
-            xmlElem.AppendChild(xmlProtocolVer);
-
-            //EBDID
-            XmlElement xmlEBDID = xmlDoc.CreateElement("EBDID");
-            xmlEBDID.InnerText = strebdid;//
-            xmlElem.AppendChild(xmlEBDID);
-
-            //EBDType
-            XmlElement xmlEBDType = xmlDoc.CreateElement("EBDType");
-            xmlEBDType.InnerText = "EBRDTInfo";
-            xmlElem.AppendChild(xmlEBDType);
-
-            //Source
-            XmlElement xmlSRC = xmlDoc.CreateElement("SRC");
-            xmlElem.AppendChild(xmlSRC);
-
-            XmlElement xmlSRCAreaCode = xmlDoc.CreateElement("EBRID");
-            xmlSRCAreaCode.InnerText = sHBRONO;
-            xmlSRC.AppendChild(xmlSRCAreaCode);
-
-            //EBDTime
-            XmlElement xmlEBDTime = xmlDoc.CreateElement("EBDTime");
-
-            xmlEBDTime.InnerText = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            xmlElem.AppendChild(xmlEBDTime);
-            #endregion End
-            //RelatedEBD
-            //XmlElement xmlRelatedEBD = xmlDoc.CreateElement("RelatedEBD");
-            //xmlElem.AppendChild(xmlRelatedEBD);
-            //XmlElement xmlReEBDID = xmlDoc.CreateElement("EBDID");
-            //xmlReEBDID.InnerText = strebdid;//与EBDID一致就用这个写
-            //xmlRelatedEBD.AppendChild(xmlReEBDID);
-            #region DeviceInfoReport
-            XmlElement xmlDeviceInfoReport = xmlDoc.CreateElement("EBRDTInfo");
-            xmlElem.AppendChild(xmlDeviceInfoReport);
-
-            XmlElement xmlParams = xmlDoc.CreateElement("Params");
-            xmlElem.AppendChild(xmlParams);
-
-            XmlElement xmlRPTStartTime = xmlDoc.CreateElement("RPTStartTime");//RPTStartTime
-            xmlRPTStartTime.InnerText = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");// ebdsr.DataRequest.StartTime;
-            xmlParams.AppendChild(xmlRPTStartTime);
-
-            XmlElement xmlRPTEndTime = xmlDoc.CreateElement("RPTEndTime");//RPTEndTime
-            xmlRPTEndTime.InnerText = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"); //ebdsr.DataRequest.EndTime;
-            xmlParams.AppendChild(xmlRPTEndTime);
-
-            XmlElement xmlRptType = xmlDoc.CreateElement("RptType");//RPTEndTime
-            xmlRptType.InnerText = ""; //ebdsr.DataRequest.EndTime;
-            xmlParams.AppendChild(xmlRptType);
+            model.EBD EDB = new model.EBD();
+            EDB.EBRDTInfo = new EBRPSInfo();
+            EDB.EBDVersion = "1.0";
+            EDB.EBDID = strebdid;
+            EDB.EBDType = "EBRDTInfo";
+            EDB.SRC = new model.SRC();
+            EDB.SRC.EBRID = serverini.ReadValue("INFOSET", "HBRONO");
+            EDB.EBDTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            EDB.SRC.URL = serverini.ReadValue("PLATFORMINFO", "URL");
+            EDB.EBRDTInfo.EBRDT = new List<Information>();
+            EDB.DEST = new model.DEST();
+            EDB.DEST.EBRID = serverini.ReadValue("FORM", "Superior");
 
             string DeviEBRID = sHBRONO.Substring(4, sHBRONO.Length - 6);
-            Console.WriteLine(DeviEBRID);
-
-            #region Device
             if (lDev.Count > 0)
             {
                 for (int l = 0; l < lDev.Count; l++)
                 {
-                    XmlElement xmlDevice = xmlDoc.CreateElement("EBRDT");//Term
-                    xmlDeviceInfoReport.AppendChild(xmlDevice);
+                    Information EBRDT = new Information();
+                    EBRDT.EBRID = lDev[l].DeviceID;
+                    EBRDT.RptTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    EBRDT.RptType = "Sync";
+                    if (lDev[l].Longitude.Split('.')[1].Length > 6)
+                    {
+                        EBRDT.Longitude = lDev[l].Longitude.Split('.')[0] + "." + lDev[l].Longitude.Split('.')[1].Substring(0, 6);
+                    }
+                    if (lDev[l].Latitude.Split('.')[1].Length > 6)
+                    {
+                        EBRDT.Latitude = lDev[l].Latitude.Split('.')[0] + "." + lDev[l].Latitude.Split('.')[1].Substring(0, 6);
 
-                    XmlElement xmlRptTime = xmlDoc.CreateElement("RptTime");
-                    xmlRptTime.InnerText = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                    xmlDevice.AppendChild(xmlRptTime);
+                    }
+                    EBRDT.EBRName = lDev[l].DeviceName;
+                    EDB.EBRDTInfo.EBRDT.Add(EBRDT);
 
-                    XmlElement xmlRptType2 = xmlDoc.CreateElement("RptType");
-                    xmlRptType2.InnerText = "Sync";
-                    xmlDevice.AppendChild(xmlRptType2);
-
-                    XmlElement xmlRelatedEBRPS = xmlDoc.CreateElement("RelatedEBRPS");
-                    xmlDevice.AppendChild(xmlRelatedEBRPS);
-
-                    XmlElement xmlEBRID = xmlDoc.CreateElement("EBRID");
-                    xmlEBRID.InnerText = sHBRONO;
-                    xmlRelatedEBRPS.AppendChild(xmlEBRID);
-
-                    XmlElement xmlDeviceID = xmlDoc.CreateElement("EBRID");
-                    xmlDeviceID.InnerText = "0601" + DeviEBRID + lDev[l].DeviceID;
-                    xmlDevice.AppendChild(xmlDeviceID);
-
-                    XmlElement xmlDeviceName = xmlDoc.CreateElement("EBRName");
-                    xmlDeviceName.InnerText = l + "号";
-                    xmlDevice.AppendChild(xmlDeviceName);
-
-                    XmlElement xmlLongitude = xmlDoc.CreateElement("Longitude");
-                    xmlLongitude.InnerText = lDev[l].Longitude;
-                    xmlDevice.AppendChild(xmlLongitude);
-
-                    XmlElement xmlLatitude = xmlDoc.CreateElement("Latitude");
-                    xmlLatitude.InnerText = lDev[l].Latitude;
-                    xmlDevice.AppendChild(xmlLatitude);
-
-                    XmlElement xmlParams2 = xmlDoc.CreateElement("Params");
-                    xmlLatitude.InnerText = lDev[l].Latitude;
-                    xmlDevice.AppendChild(xmlParams2);
                 }
             }
-            #endregion End
-            #endregion End
-            return xmlDoc;
+            string strXML = XmlSerialize<model.EBD>(EDB).Replace("<EBRDT>", "").Replace("</EBRDT>", "").Replace("Information", "EBRDT");
+            XmlDocument document = new XmlDocument();
+            document.LoadXml(strXML);
+            return document;
         }
 
         /// <summary>
@@ -2512,6 +2527,7 @@ namespace GRPlatForm
                     }
                     EBRDT.StateDesc = lDevState[l].DeviceState;
                     //      EDB.DEST.EBRID = serverini.ReadValue("FORM", "SuperiorPlatform");
+                    EBRDT.SRV_RMT_SWITCH = lDevState[l].SRV_RMT_SWITCH;
 
                     EDB.EBRDTState.Add(EBRDT);
 

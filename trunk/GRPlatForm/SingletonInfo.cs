@@ -1,6 +1,7 @@
 ﻿using System.Threading;
 using System.Collections.Generic;
 using System.Data;
+using GRPlatForm.model;
 
 namespace GRPlatForm
 {
@@ -29,6 +30,23 @@ namespace GRPlatForm
         public bool PlatformInformationFirst;
 
         public int SequenceCodes;//顺序码
+
+        public Dictionary<string, string> DicTsCmd_ID;
+        public Dictionary<string, List<Thread>> DicPlayingThread;
+
+
+        public string USER_PRIORITY;
+        public string TsCmd_UserID;
+        public string USER_ORG_CODE;
+
+        public int TerminalCount;//数据库中的终端数量
+
+        public object lockedHttpSend;
+
+        public List<EBMBrdItems> EBMBrdItems;
+
+
+        public Dictionary<string, OrganizationInfo> DicOrganizationCode;
         private SingletonInfo()                                                                 
         {
             Longitude = "";
@@ -41,6 +59,19 @@ namespace GRPlatForm
             sZJPostUrlAddress = "";
             PlatformInformationFirst = false;
             SequenceCodes = 0;
+
+            DicTsCmd_ID = new Dictionary<string, string>();
+            DicPlayingThread = new Dictionary<string, List<Thread>>();
+
+            USER_PRIORITY = "";
+            TsCmd_UserID = "";
+            USER_ORG_CODE = "";
+            TerminalCount = 0;
+            lockedHttpSend = new object();
+
+            EBMBrdItems = new List<EBMBrdItems>();
+
+            DicOrganizationCode = new Dictionary<string, OrganizationInfo>();
         }
         public static SingletonInfo GetInstance()
         {

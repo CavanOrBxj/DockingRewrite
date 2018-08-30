@@ -241,6 +241,14 @@ public SRC SRC
             get;
             set;
         }
+
+        public TunersPlayRecording TunersPlayRecording
+        {
+            get;
+            set;
+        }
+
+
         public string UnitInfo
         {
             get;
@@ -271,6 +279,41 @@ public SRC SRC
 
 
     }
+
+    /// <summary>
+    /// 图南播放记录信息
+    /// </summary>
+    public class TunersPlayRecording
+    {
+        /// <summary>
+        /// 应急广播消息ID
+        /// </summary>
+        public string EmergencyBroadcastID { get; set; }
+
+        /// <summary>
+        /// 播发类型  文件/实时音频/电插播/话筒插播  等等
+        /// </summary>
+        public string BroadcastType { get; set; }
+
+        /// <summary>
+        /// 播发开始时间
+        /// </summary>
+        public string BroadcastStartTime { get; set; }
+
+        /// <summary>
+        /// 播发结束时间
+        /// </summary>
+        public string BroadcastEndTime { get; set; }
+
+        /// <summary>
+        /// 覆盖范围
+        /// </summary>
+        public string OverlayArea { get; set; }
+
+
+    }
+
+
     public class Coverage
     {
        public string CoverageRate
@@ -545,6 +588,12 @@ public SRC SRC
             get;
             set;
         }
+
+        public string SRV_RMT_SWITCH
+        {
+            get;
+            set;
+        }
     }
 
     public class EBRPS
@@ -654,6 +703,8 @@ public SRC SRC
             set;
         }
     }
+
+   
     public class MsgContent
     {
          public string LanguageCode

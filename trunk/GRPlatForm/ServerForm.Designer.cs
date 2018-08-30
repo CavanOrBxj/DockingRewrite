@@ -34,11 +34,11 @@
             this.txtServerPort = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.btnStart = new System.Windows.Forms.Button();
+            this.button5 = new System.Windows.Forms.Button();
             this.button4 = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
-            this.btnHeart = new System.Windows.Forms.Button();
             this.panel2 = new System.Windows.Forms.Panel();
             this.txtMsgShow = new System.Windows.Forms.TextBox();
             this.timHold = new System.Windows.Forms.Timer(this.components);
@@ -135,12 +135,25 @@
             this.btnStart.UseVisualStyleBackColor = true;
             this.btnStart.Click += new System.EventHandler(this.btnStart_Click);
             // 
+            // button5
+            // 
+            this.button5.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.button5.BackColor = System.Drawing.Color.SeaGreen;
+            this.button5.Location = new System.Drawing.Point(3, 130);
+            this.button5.Name = "button5";
+            this.button5.Size = new System.Drawing.Size(188, 25);
+            this.button5.TabIndex = 12;
+            this.button5.Text = "播发记录主动上报";
+            this.button5.UseVisualStyleBackColor = false;
+            this.button5.Click += new System.EventHandler(this.button5_Click_1);
+            // 
             // button4
             // 
             this.button4.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.button4.BackColor = System.Drawing.Color.SeaGreen;
-            this.button4.Location = new System.Drawing.Point(2, 99);
+            this.button4.Location = new System.Drawing.Point(3, 99);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(188, 25);
             this.button4.TabIndex = 4;
@@ -186,18 +199,6 @@
             this.button1.Text = "平台信息上报";
             this.button1.UseVisualStyleBackColor = false;
             this.button1.Click += new System.EventHandler(this.button1_Click);
-            // 
-            // btnHeart
-            // 
-            this.btnHeart.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnHeart.Location = new System.Drawing.Point(3, 130);
-            this.btnHeart.Name = "btnHeart";
-            this.btnHeart.Size = new System.Drawing.Size(188, 25);
-            this.btnHeart.TabIndex = 3;
-            this.btnHeart.Text = "发送心跳";
-            this.btnHeart.UseVisualStyleBackColor = true;
-            this.btnHeart.Click += new System.EventHandler(this.btnHeart_Click);
             // 
             // panel2
             // 
@@ -425,9 +426,9 @@
             this.dockPanel4_Container.Controls.Add(this.btn_InfroState);
             this.dockPanel4_Container.Controls.Add(this.button1);
             this.dockPanel4_Container.Controls.Add(this.button2);
-            this.dockPanel4_Container.Controls.Add(this.btnHeart);
             this.dockPanel4_Container.Controls.Add(this.button4);
             this.dockPanel4_Container.Controls.Add(this.button3);
+            this.dockPanel4_Container.Controls.Add(this.button5);
             this.dockPanel4_Container.Location = new System.Drawing.Point(4, 23);
             this.dockPanel4_Container.Name = "dockPanel4_Container";
             this.dockPanel4_Container.Size = new System.Drawing.Size(199, 323);
@@ -511,7 +512,6 @@
         private System.Windows.Forms.TextBox txtMsgShow;
         private System.Windows.Forms.Timer timHold;
         private System.Windows.Forms.Timer timHeart;
-        private System.Windows.Forms.Button btnHeart;
         private System.Windows.Forms.Timer tim_MediaPlay;
         private System.Windows.Forms.Timer tim_ClearMemory;
         private System.Windows.Forms.Button button4;
@@ -543,5 +543,6 @@
         private System.Windows.Forms.ColumnHeader EBMStartTime;
         private System.Windows.Forms.ColumnHeader EBMEndTime;
         private System.Windows.Forms.OpenFileDialog openFileDialog1;
+        private System.Windows.Forms.Button button5;
     }
 }

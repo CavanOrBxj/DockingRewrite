@@ -58,7 +58,7 @@
             this.mnuServoSet});
             this.menuStrip.Location = new System.Drawing.Point(0, 0);
             this.menuStrip.Name = "menuStrip";
-            this.menuStrip.Size = new System.Drawing.Size(991, 24);
+            this.menuStrip.Size = new System.Drawing.Size(991, 25);
             this.menuStrip.TabIndex = 1;
             this.menuStrip.Text = "menuStrip1";
             // 
@@ -74,58 +74,58 @@
             this.toolStripMenuItem2,
             this.mnuExit});
             this.SystemToolStripMnu.Name = "SystemToolStripMnu";
-            this.SystemToolStripMnu.Size = new System.Drawing.Size(65, 20);
+            this.SystemToolStripMnu.Size = new System.Drawing.Size(68, 21);
             this.SystemToolStripMnu.Text = "系统设置";
             // 
             // mnuServerAddrSet
             // 
             this.mnuServerAddrSet.Name = "mnuServerAddrSet";
-            this.mnuServerAddrSet.Size = new System.Drawing.Size(154, 22);
+            this.mnuServerAddrSet.Size = new System.Drawing.Size(159, 22);
             this.mnuServerAddrSet.Text = "服务地址设置";
             this.mnuServerAddrSet.Click += new System.EventHandler(this.mnuServerAddrSet_Click);
             // 
             // mnuComSet
             // 
             this.mnuComSet.Name = "mnuComSet";
-            this.mnuComSet.Size = new System.Drawing.Size(154, 22);
+            this.mnuComSet.Size = new System.Drawing.Size(159, 22);
             this.mnuComSet.Text = "串口设置";
             this.mnuComSet.Click += new System.EventHandler(this.mnuComSet_Click);
             // 
             // ServerIPSet
             // 
             this.ServerIPSet.Name = "ServerIPSet";
-            this.ServerIPSet.Size = new System.Drawing.Size(154, 22);
+            this.ServerIPSet.Size = new System.Drawing.Size(159, 22);
             this.ServerIPSet.Text = "服务IP地址设置";
             this.ServerIPSet.Click += new System.EventHandler(this.ServerIPSet_Click);
             // 
             // toolStripMenuItem1
             // 
             this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(151, 6);
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(156, 6);
             // 
             // mnuFolderSet
             // 
             this.mnuFolderSet.Name = "mnuFolderSet";
-            this.mnuFolderSet.Size = new System.Drawing.Size(154, 22);
+            this.mnuFolderSet.Size = new System.Drawing.Size(159, 22);
             this.mnuFolderSet.Text = "文件夹设置";
             this.mnuFolderSet.Click += new System.EventHandler(this.mnuFolderSet_Click);
             // 
             // mnuSysInfoSet
             // 
             this.mnuSysInfoSet.Name = "mnuSysInfoSet";
-            this.mnuSysInfoSet.Size = new System.Drawing.Size(154, 22);
+            this.mnuSysInfoSet.Size = new System.Drawing.Size(159, 22);
             this.mnuSysInfoSet.Text = "系统信息设置";
             this.mnuSysInfoSet.Click += new System.EventHandler(this.mnuSysInfoSet_Click);
             // 
             // toolStripMenuItem2
             // 
             this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-            this.toolStripMenuItem2.Size = new System.Drawing.Size(151, 6);
+            this.toolStripMenuItem2.Size = new System.Drawing.Size(156, 6);
             // 
             // mnuExit
             // 
             this.mnuExit.Name = "mnuExit";
-            this.mnuExit.Size = new System.Drawing.Size(154, 22);
+            this.mnuExit.Size = new System.Drawing.Size(159, 22);
             this.mnuExit.Text = "退出";
             this.mnuExit.Click += new System.EventHandler(this.mnuExit_Click);
             // 
@@ -134,13 +134,13 @@
             this.mnuServoSet.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.mnuServerStart});
             this.mnuServoSet.Name = "mnuServoSet";
-            this.mnuServoSet.Size = new System.Drawing.Size(65, 20);
+            this.mnuServoSet.Size = new System.Drawing.Size(68, 21);
             this.mnuServoSet.Text = "伺服设置";
             // 
             // mnuServerStart
             // 
             this.mnuServerStart.Name = "mnuServerStart";
-            this.mnuServerStart.Size = new System.Drawing.Size(118, 22);
+            this.mnuServerStart.Size = new System.Drawing.Size(124, 22);
             this.mnuServerStart.Text = "启动伺服";
             this.mnuServerStart.Click += new System.EventHandler(this.mnuServerStart_Click);
             // 
@@ -158,24 +158,24 @@
             this.toolStripMenuItem3,
             this.mnuQuit});
             this.iMenu.Name = "iMenu";
-            this.iMenu.Size = new System.Drawing.Size(153, 76);
+            this.iMenu.Size = new System.Drawing.Size(101, 54);
             // 
             // mnuShow
             // 
             this.mnuShow.Name = "mnuShow";
-            this.mnuShow.Size = new System.Drawing.Size(152, 22);
+            this.mnuShow.Size = new System.Drawing.Size(100, 22);
             this.mnuShow.Text = "显示";
             this.mnuShow.Click += new System.EventHandler(this.mnuShow_Click);
             // 
             // toolStripMenuItem3
             // 
             this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-            this.toolStripMenuItem3.Size = new System.Drawing.Size(149, 6);
+            this.toolStripMenuItem3.Size = new System.Drawing.Size(97, 6);
             // 
             // mnuQuit
             // 
             this.mnuQuit.Name = "mnuQuit";
-            this.mnuQuit.Size = new System.Drawing.Size(152, 22);
+            this.mnuQuit.Size = new System.Drawing.Size(100, 22);
             this.mnuQuit.Text = "退出";
             this.mnuQuit.Click += new System.EventHandler(this.mnuQuit_Click);
             // 
@@ -191,7 +191,7 @@
             this.MainMenuStrip = this.menuStrip;
             this.Name = "mainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "应急广播消息服务V1.0";
+            this.Text = "应急广播消息服务V1.8";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.mainForm_FormClosing);
             this.Load += new System.EventHandler(this.mainForm_Load);
             this.menuStrip.ResumeLayout(false);

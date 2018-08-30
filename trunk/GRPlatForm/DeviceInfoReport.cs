@@ -59,6 +59,11 @@ namespace GRPlatForm
         /// url  20180815新增
         /// </summary>
         public string URL;
+
+        /// <summary>
+        /// 表明该终端是否带回传功能
+        /// </summary>
+        public string SRV_RMT_SWITCH;
     }
 
 }
