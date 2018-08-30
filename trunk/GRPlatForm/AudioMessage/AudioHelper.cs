@@ -275,7 +275,7 @@ namespace GRPlatForm.AudioMessage
                                 if (SingletonInfo.GetInstance().DicPlayingThread.ContainsKey(AudioModel.AeraCodeReal))
                                 {
                                     SingletonInfo.GetInstance().DicPlayingThread.Remove(AudioModel.AeraCodeReal);
-                                    MessageBox.Show("文件播放完了->删除" + AudioModel.AeraCodeReal + "的字典值");
+                                  //  MessageBox.Show("文件播放完了->删除" + AudioModel.AeraCodeReal + "的字典值");
                                 }
 
                                 break;
@@ -324,7 +324,7 @@ namespace GRPlatForm.AudioMessage
                         if (SingletonInfo.GetInstance().DicPlayingThread.ContainsKey(AudioModel.AeraCodeReal))
                         {
                             SingletonInfo.GetInstance().DicPlayingThread.Remove(AudioModel.AeraCodeReal);
-                            MessageBox.Show("播放时间到了->删除"+ AudioModel.AeraCodeReal+"的字典值");
+                           // MessageBox.Show("播放时间到了->删除"+ AudioModel.AeraCodeReal+"的字典值");
                         }
                         break;
                     }

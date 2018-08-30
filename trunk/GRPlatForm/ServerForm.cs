@@ -1565,9 +1565,6 @@ namespace GRPlatForm
             itemTsCmd_ValueID.name = "TsCmd_ValueID";
             itemTsCmd_ValueID.value = TsCmd_ValueID;
             InstallList.Add(itemTsCmd_ValueID);
-
-
-
             return InstallList;
         }
 
