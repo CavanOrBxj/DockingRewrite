@@ -151,7 +151,6 @@ namespace GRPlatForm
         private void frmLogin_Load(object sender, EventArgs e)
         {
             gbSetting.Visible = false;
-
             oLock = new Object();
             //读取INI文件
             formHeight = this.Height;
@@ -163,6 +162,5 @@ namespace GRPlatForm
             this.Height = formHeight - gbSetting.Height;
 
         }
-
     }
 }

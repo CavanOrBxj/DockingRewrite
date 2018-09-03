@@ -232,7 +232,7 @@ namespace GRPlatForm
                
                 tSrvState.Enabled = true;
 
-               tPlayRecording.Enabled = true;
+             //  tPlayRecording.Enabled = true;
             }
             else
             {
@@ -3217,17 +3217,12 @@ namespace GRPlatForm
                     //   SendTar.SendTarOrder.sendHelper.AddPostQueue(sZJPostUrlAddress, sHeartBeatTarName);
 
                     HttpSendFile.UploadFilesByPost(sZJPostUrlAddress, sHeartBeatTarName);//新增于20180824
-
-
-
                 }
                 catch (Exception ex)
                 {
                 }
                 SetManager("平台信息上报:" + DateTime.Now.ToString(), Color.Green);
             });
-
-            
         }
 
         /// <summary>

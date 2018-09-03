@@ -77,9 +77,7 @@ namespace GRPlatForm
         {
             try
             {
-
                 m_UsbPwsSupport = ini.ReadValue("USBPSW", "USBPSWSUPPART");
-
                 //打开密码器
                 if (m_UsbPwsSupport == "1")
                 {

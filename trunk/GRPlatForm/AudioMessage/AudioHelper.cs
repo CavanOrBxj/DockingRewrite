@@ -399,7 +399,6 @@ namespace GRPlatForm.AudioMessage
                 {
                     TsCmd_ValueID += item["ORG_ID"].ToString() + ",";
                 }
-
             }
             if (string.IsNullOrEmpty(TsCmd_ValueID))
             {
