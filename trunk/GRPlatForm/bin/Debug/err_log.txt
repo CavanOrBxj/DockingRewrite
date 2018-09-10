@@ -144,3 +144,8 @@
 <2018-08-29 23:30:46> SD_PCI_Initialize [TCP_ConnectPCI], Connect Server Failed. [127.0.0.1:8888] ret = 0xf0000007.
 <2018-08-30 00:13:09> SD_PCI_Initialize [TCP_ConnectPCI], Connect Server Failed. [127.0.0.1:8888] ret = 0xf0000007.
 <2018-08-30 00:27:28> SD_PCI_Initialize [TCP_ConnectPCI], Connect Server Failed. [127.0.0.1:8888] ret = 0xf0000007.
+<2018-09-05 09:26:10> SD_PCI_Initialize [TCP_ConnectPCI], Connect Server Failed. [127.0.0.1:8888] ret = 0xf0000007.
+<2018-09-05 09:29:13> SD_PCI_Initialize [TCP_ConnectPCI], Connect Server Failed. [127.0.0.1:8888] ret = 0xf0000007.
+<2018-09-10 10:27:08> SD_PCI_Initialize [TCP_ConnectPCI], Connect Server Failed. [127.0.0.1:8888] ret = 0xf0000007.
+<2018-09-10 10:29:05> SD_PCI_Initialize [TCP_ConnectPCI], Connect Server Failed. [127.0.0.1:8888] ret = 0xf0000007.
+<2018-09-10 10:44:40> SD_PCI_Initialize [TCP_ConnectPCI], Connect Server Failed. [127.0.0.1:8888] ret = 0xf0000007.

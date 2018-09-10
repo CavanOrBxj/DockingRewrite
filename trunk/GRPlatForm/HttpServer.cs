@@ -463,7 +463,8 @@ namespace GRPlatForm
                     {
                         myEBDType = ebdb.EBDType;
                     }
-                    if (!string.IsNullOrWhiteSpace(sSignFileName) && myEBDType != "ConnectionCheck")
+                    //  if (!string.IsNullOrWhiteSpace(sSignFileName) && myEBDType != "ConnectionCheck")
+                    if (myEBDType != "ConnectionCheck")
                     {
                         //读取xml中的文件,转换为byte字节
                         byte[] xmlArray = File.ReadAllBytes(sAnalysisFileName);
