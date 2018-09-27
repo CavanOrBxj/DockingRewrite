@@ -23,8 +23,8 @@ namespace GRPlatForm.AudioMessage.MQAudio
             if (!AudioModel.TextState)
             {
                 // AudioModel.PlayingTime = DateTime.Now.AddMinutes(0);
-                AudioModel.PlayingTime = DateTime.Now.AddSeconds(20);
-                AudioModel.PlayEndTime = DateTime.Now.AddMinutes(6);
+                AudioModel.PlayingTime = DateTime.Now.AddSeconds(2);
+                AudioModel.PlayEndTime = DateTime.Now.AddMinutes(5);
             }
         }
 
