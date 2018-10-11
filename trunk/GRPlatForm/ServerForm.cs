@@ -1060,7 +1060,13 @@ namespace GRPlatForm
                                                 if (strMsgType == "2" && PlayType == "1" && ebd.EBM.MsgContent.Auxiliary.AuxiliaryDesc == "文本转语")
                                                 {
                                                     string AreaString = CombinationArea(ebd.EBM.MsgContent.AreaCode.Split(','));
+                                                    if (!SingletonInfo.GetInstance().DicTsCmd_ID.ContainsKey(AreaString))
+                                                    {
+                                                        lDealTarFiles.RemoveAt(0);//无论是否成功，都移除  先注释 20180820
+                                                        break;
+                                                    }
                                                     SetText("停止播发：" + DateTime.Now.ToString(), Color.Red);
+                                                  
                                                     string PR_SourceID = SingletonInfo.GetInstance().DicTsCmd_ID[AreaString];
 
                                                     string strSql = string.Format("update PLAYRECORD set PR_REC_STATUS = '{0}' where PR_SourceID='{1}'", "删除", PR_SourceID);
@@ -1484,7 +1490,7 @@ namespace GRPlatForm
                         }
                         catch (Exception dxml)
                         {
-                           // MessageBox.Show(dxml.Message + dxml.StackTrace);
+                            MessageBox.Show(dxml.Message + dxml.StackTrace);
                         }
                     }//for循环处理接收到的Tar包
                 }
