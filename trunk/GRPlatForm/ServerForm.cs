@@ -4088,14 +4088,14 @@ namespace GRPlatForm
         private void btn_InfroState_Click(object sender, EventArgs e)
         {
             string StateFaleText = btn_InfroState.Text;
-            if (StateFaleText == "信息状态-开启")
+            if (StateFaleText == "开启信息状态上报")
             {
                 tSrvState.Enabled = true;
                 tSrvInfo.Enabled = true;
                 tTerraceInfrom.Enabled = true;
                 tTerraceState.Enabled = true;
                 //InfromActiveTime.Enabled = true;
-                btn_InfroState.Text = "信息状态-关闭";
+                btn_InfroState.Text = "关闭信息状态上报";
             }
             else
             {
@@ -4104,7 +4104,7 @@ namespace GRPlatForm
                 tTerraceInfrom.Enabled = false;
                 tTerraceState.Enabled = false;
                 //InfromActiveTime.Enabled = false;
-                btn_InfroState.Text = "信息状态-开启";
+                btn_InfroState.Text = "开启信息状态上报";
             }
         }
 
@@ -4112,15 +4112,15 @@ namespace GRPlatForm
         private void btn_HreartState_Click(object sender, EventArgs e)
         {
             string StateFaleText = btn_HreartState.Text;
-            if (StateFaleText == "心跳状态-开启")
+            if (StateFaleText == "开启心跳状态上报")
             {
                 t.Enabled = true;
-                btn_HreartState.Text = "心跳状态-关闭";
+                btn_HreartState.Text = "关闭心跳状态上报";
             }
             else
             {
                 t.Enabled = false;
-                btn_HreartState.Text = "心跳状态-开启";
+                btn_HreartState.Text = "开启心跳状态上报";
             }
         }
 
@@ -4128,17 +4128,17 @@ namespace GRPlatForm
         {
             //EBMVerifyState
             string StateFaleText = btn_Verify.Text;
-            if (StateFaleText == "人工审核-开启")
+            if (StateFaleText == "开启人工审核")
             {
                 serverini.WriteValue("EBD", "EBMState", "true");
                 EBMVerifyState = true;
-                btn_Verify.Text = "人工审核-关闭";
+                btn_Verify.Text = "关闭人工审核";
             }
             else
             {
                 serverini.WriteValue("EBD", "EBMState", "False");
                 EBMVerifyState = false;
-                btn_Verify.Text = "人工审核-开启";
+                btn_Verify.Text = "开启人工审核";
             }
         }
 

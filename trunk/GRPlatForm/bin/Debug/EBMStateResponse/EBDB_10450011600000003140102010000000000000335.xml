@@ -6,17 +6,17 @@
   <SRC>
     <EBRID>45001160000000314010201</EBRID>
   </SRC>
-  <EBDTime>2018-10-10 15:39:23</EBDTime>
+  <EBDTime>2018-10-23 14:35:11</EBDTime>
   <EBMStateResponse>
-    <RptTime>2018-10-10 15:39:23</RptTime>
+    <RptTime>2018-10-23 14:35:11</RptTime>
     <EBM>
-      <EBMID>4500116000000010101010120180001</EBMID>
+      <EBMID>45001160000000101010101201809050001</EBMID>
     </EBM>
-    <BrdStateCode>3</BrdStateCode>
-    <BrdStateDesc>播放完成</BrdStateDesc>
+    <BrdStateCode>2</BrdStateCode>
+    <BrdStateDesc>播放中</BrdStateDesc>
     <Coverage>
       <CoverageRate>1</CoverageRate>
-      <AreaCode>500116000000</AreaCode>
+      <AreaCode>500116005011</AreaCode>
       <ResBrdStat>1,1,1,1</ResBrdStat>
     </Coverage>
   </EBMStateResponse>
