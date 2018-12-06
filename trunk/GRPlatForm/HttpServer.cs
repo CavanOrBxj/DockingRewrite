@@ -257,7 +257,7 @@ namespace GRPlatForm
         {
             //直接使用StreamReader为导致接收文件数据缺失，直接用Stream可接收所有数据，但需自行处理分行和结尾，
             //有其他更好方法请自行修改
-            Console.WriteLine("204:" + sFileForldPath);
+          //  Console.WriteLine("204:" + sFileForldPath);
             if (this.httpHeaders.ContainsKey("Content-Length"))
             {
                 int content_len = Convert.ToInt32(this.httpHeaders["Content-Length"]);

@@ -109,3 +109,9 @@ D:\GitHub\重庆江津\DockingRewrite\trunk\ConsumptionQueue\obj\Debug\Consumpti
 D:\GitHub\重庆江津\DockingRewrite\trunk\ConsumptionQueue\obj\Debug\ConsumptionQueue.dll
 D:\GitHub\重庆江津\DockingRewrite\trunk\ConsumptionQueue\obj\Debug\ConsumptionQueue.pdb
 D:\GitHub\重庆江津\DockingRewrite\trunk\ConsumptionQueue\obj\Debug\ConsumptionQueue.csprojAssemblyReference.cache
+E:\GitHub\重庆江津\DockingRewrite\trunk\ConsumptionQueue\bin\Debug\ConsumptionQueue.dll
+E:\GitHub\重庆江津\DockingRewrite\trunk\ConsumptionQueue\bin\Debug\ConsumptionQueue.pdb
+E:\GitHub\重庆江津\DockingRewrite\trunk\ConsumptionQueue\obj\Debug\ConsumptionQueue.csprojAssemblyReference.cache
+E:\GitHub\重庆江津\DockingRewrite\trunk\ConsumptionQueue\obj\Debug\ConsumptionQueue.csproj.CoreCompileInputs.cache
+E:\GitHub\重庆江津\DockingRewrite\trunk\ConsumptionQueue\obj\Debug\ConsumptionQueue.dll
+E:\GitHub\重庆江津\DockingRewrite\trunk\ConsumptionQueue\obj\Debug\ConsumptionQueue.pdb
