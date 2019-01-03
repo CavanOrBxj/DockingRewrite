@@ -220,9 +220,9 @@ namespace GRPlatForm
 
         private void btnStart_Click(object sender, EventArgs e)
         {
-            if (btnStart.Text == "启动服务")
+            if (btnStart.Text == "服务-未开启")
             {
-                btnStart.Text = "停止服务";
+                btnStart.Text = "服务-已开启";
                 txtServerPort.Enabled = false;
                 if (MQStartFlag)
                     FindUserInfo("admin");
@@ -266,7 +266,7 @@ namespace GRPlatForm
                 {
                     Log.Instance.LogWrite("停止线程错误：" + em.Message);
                 }
-                btnStart.Text = "启动服务";
+                btnStart.Text = "服务-未开启";
                 txtServerPort.Enabled = true;
 
                 tTerraceInfrom.Enabled = false;
@@ -1019,23 +1019,6 @@ namespace GRPlatForm
                                                     PlayType = "1";
                                                 }
                                             }
-                                            #region  加入反馈列表的操作 先注释  20180820
-                                            //try
-                                            //{
-                                            //    lock (oLockFile)
-                                            //    {
-                                            //        if (ebd.EBM.EBMID != null)
-                                            //        {
-                                            //            lFeedBack.Add(ebd.EBM.EBMID);//加入反馈列表
-                                            //        }
-                                            //    }
-                                            //}
-                                            //catch (Exception en)
-                                            //{
-                                            //    Log.Instance.LogWrite("错误480行：" + en.Message);
-                                            //}
-                                            #endregion
-
 
                                             //  if ((EBMVerifyState || RealAudioFlag) && strMsgType == "2")//实时流在播发时的停止
                                             if (strMsgType == "2")
@@ -1231,54 +1214,54 @@ namespace GRPlatForm
                                                             int iback = mainForm.dba.getResultIDBySQL(sqlstr, "TsCmdStore");
 
                                                             // for (int i = 0; i < listAreaCode.Count; i++)
-                                                            {
-                                                                //string cmdOpen = "4C " + listAreaCode[i] + " B0 02 01 04";
-                                                                string cmdOpen = "4C " + "AA AA AA AA 00" + " B0 02 01 04";
-                                                                Log.Instance.LogWrite("立即播放音频应急开机：" + cmdOpen);
-                                                                SetText("立即播放音频应急开机：" + cmdOpen + DateTime.Now.ToString(), Color.Blue);
-                                                                string strsum = DataSum(cmdOpen);
-                                                                cmdOpen = "FE FE FE " + cmdOpen + " " + strsum + " 16";
-                                                                string strsql = "";
-                                                                strsql = "insert into CommandPool(CMD_TIME,CMD_BODY,CMD_FLAG)" +
-                                                                " VALUES('" + DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + "','" + cmdOpen + "','" + '0' + "')";
-                                                                mainForm.dba.UpdateOrInsertBySQL(strsql);
-                                                            }
-                                                            Thread.Sleep(600);
+                                                            //{
+                                                            //    //string cmdOpen = "4C " + listAreaCode[i] + " B0 02 01 04";
+                                                            //    string cmdOpen = "4C " + "AA AA AA AA 00" + " B0 02 01 04";
+                                                            //    Log.Instance.LogWrite("立即播放音频应急开机：" + cmdOpen);
+                                                            //    SetText("立即播放音频应急开机：" + cmdOpen + DateTime.Now.ToString(), Color.Blue);
+                                                            //    string strsum = DataSum(cmdOpen);
+                                                            //    cmdOpen = "FE FE FE " + cmdOpen + " " + strsum + " 16";
+                                                            //    string strsql = "";
+                                                            //    strsql = "insert into CommandPool(CMD_TIME,CMD_BODY,CMD_FLAG)" +
+                                                            //    " VALUES('" + DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss") + "','" + cmdOpen + "','" + '0' + "')";
+                                                            //    mainForm.dba.UpdateOrInsertBySQL(strsql);
+                                                            //}
+                                                            //Thread.Sleep(600);
 
-                                                            for (int iLoopMedia = 0; iLoopMedia < AudioFileListTmp.Count; iLoopMedia++)
-                                                            {
-                                                                /*本地播放
-                                                                //发送控制信号
-                                                                /*推流播放*/
-                                                                SetText("音频播放文件：" + AudioFileListTmp[iLoopMedia], Color.Red);
-                                                                bCharToAudio = "2";
+                                                            //for (int iLoopMedia = 0; iLoopMedia < AudioFileListTmp.Count; iLoopMedia++)
+                                                            //{
+                                                            //    /*本地播放
+                                                            //    //发送控制信号
+                                                            //    /*推流播放*/
+                                                            //    SetText("音频播放文件：" + AudioFileListTmp[iLoopMedia], Color.Red);
+                                                            //    bCharToAudio = "2";
 
-                                                                try
-                                                                {
-                                                                    ccplay.TsCmdStoreID = TsCmdStoreID;//PlayRecord停止的标示
-                                                                    m_ccplayURL = "file:///" + AudioFileListTmp[iLoopMedia];
-                                                                    if (ccplay.m_bPlayFlag == false)
-                                                                    {
-                                                                        ccplay.m_bPlayFlag = true;
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        ccplay.StopCPPPlayer2();
-                                                                        Thread.Sleep(1000);
-                                                                        ccplayerthread.Abort();
-                                                                        Thread.Sleep(1000);
-                                                                        ccplayerthread = new Thread(CPPPlayerThread);
-                                                                        ccplayerthread.Start();
-                                                                    }
-                                                                }
-                                                                catch (Exception es)
-                                                                {
-                                                                    Log.Instance.LogWrite(es.Message);
-                                                                }
-                                                            }
+                                                            //    try
+                                                            //    {
+                                                            //        ccplay.TsCmdStoreID = TsCmdStoreID;//PlayRecord停止的标示
+                                                            //        m_ccplayURL = "file:///" + AudioFileListTmp[iLoopMedia];
+                                                            //        if (ccplay.m_bPlayFlag == false)
+                                                            //        {
+                                                            //            ccplay.m_bPlayFlag = true;
+                                                            //        }
+                                                            //        else
+                                                            //        {
+                                                            //            ccplay.StopCPPPlayer2();
+                                                            //            Thread.Sleep(1000);
+                                                            //            ccplayerthread.Abort();
+                                                            //            Thread.Sleep(1000);
+                                                            //            ccplayerthread = new Thread(CPPPlayerThread);
+                                                            //            ccplayerthread.Start();
+                                                            //        }
+                                                            //    }
+                                                            //    catch (Exception es)
+                                                            //    {
+                                                            //        Log.Instance.LogWrite(es.Message);
+                                                            //    }
+                                                            //}
                                                         }
                                                     }
-                                                    else //EBM实时流播放
+                                                    else //EBM文转语播放
                                                     {
                                                         string xmlFile = Path.GetFileName(sAnalysisFileName);
                                                         string xmlFilePath = sAudioFilesFolder + "\\" + xmlFile;
@@ -1648,15 +1631,12 @@ namespace GRPlatForm
                 audio.PlayArea = ebd.EBM.MsgContent.AreaCode.Split(',');
                 audio.MsgDesc = ebd.EBM.MsgContent.MsgDesc.Trim();
                 MQAudioHelper mqaudio = new MQAudioHelper(audio);
-                // if ((PlayType == "2"))
                 mqaudio.PlayReady();
             }
             catch (Exception  ex)
             {
-
                // MessageBox.Show(ex.Message + ex.StackTrace);
             }
-          
         }
 
         public string GetSequenceCodes()
@@ -4088,14 +4068,14 @@ namespace GRPlatForm
         private void btn_InfroState_Click(object sender, EventArgs e)
         {
             string StateFaleText = btn_InfroState.Text;
-            if (StateFaleText == "开启信息状态上报")
+            if (StateFaleText == "信息状态上报-未开启")
             {
                 tSrvState.Enabled = true;
                 tSrvInfo.Enabled = true;
                 tTerraceInfrom.Enabled = true;
                 tTerraceState.Enabled = true;
                 //InfromActiveTime.Enabled = true;
-                btn_InfroState.Text = "关闭信息状态上报";
+                btn_InfroState.Text = "信息状态上报-已开启";
             }
             else
             {
@@ -4104,7 +4084,7 @@ namespace GRPlatForm
                 tTerraceInfrom.Enabled = false;
                 tTerraceState.Enabled = false;
                 //InfromActiveTime.Enabled = false;
-                btn_InfroState.Text = "开启信息状态上报";
+                btn_InfroState.Text = "信息状态上报-未开启";
             }
         }
 
@@ -4112,15 +4092,15 @@ namespace GRPlatForm
         private void btn_HreartState_Click(object sender, EventArgs e)
         {
             string StateFaleText = btn_HreartState.Text;
-            if (StateFaleText == "开启心跳状态上报")
+            if (StateFaleText == "心跳状态上报-未开启")
             {
                 t.Enabled = true;
-                btn_HreartState.Text = "关闭心跳状态上报";
+                btn_HreartState.Text = "心跳状态上报-已开启";
             }
             else
             {
                 t.Enabled = false;
-                btn_HreartState.Text = "开启心跳状态上报";
+                btn_HreartState.Text = "心跳状态上报-未开启";
             }
         }
 
@@ -4128,17 +4108,17 @@ namespace GRPlatForm
         {
             //EBMVerifyState
             string StateFaleText = btn_Verify.Text;
-            if (StateFaleText == "开启人工审核")
+            if (StateFaleText == "人工审核-未开启")
             {
                 serverini.WriteValue("EBD", "EBMState", "true");
                 EBMVerifyState = true;
-                btn_Verify.Text = "关闭人工审核";
+                btn_Verify.Text = "人工审核-已开启";
             }
             else
             {
                 serverini.WriteValue("EBD", "EBMState", "False");
                 EBMVerifyState = false;
-                btn_Verify.Text = "开启人工审核";
+                btn_Verify.Text = "人工审核-未开启";
             }
         }
 

@@ -256,7 +256,6 @@ namespace GRPlatForm.AudioMessage.MQAudio
                             DV.DeviceState = TimingTerminalState;
                             lDev.Add(DV);
                         }
-                        Random rdState = new Random();
                         frdStateName = "10" + rHeart.sHBRONO + GetSequenceCodes();
                         string xmlEBMStateFileName = "\\EBDB_" + frdStateName + ".xml";
 

@@ -16,7 +16,6 @@ namespace GRPlatForm.SendTar
         public static readonly SendTarOrder  sendHelper=new  SendTarOrder();
         public SendTarOrder()
         {
-    
             Queueinterface<PostModel>.SendQueue.ProcessItemFunction += PostSend;
             Queueinterface<PostModel>.SendQueue.ProcessException += WriteLog;
             Queueinterface<PostModel>.SendQueue.QueryQueueExistsEvent += QueryQueue;

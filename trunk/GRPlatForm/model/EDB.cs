@@ -7,7 +7,6 @@ namespace GRPlatForm.model
 {
    public class EBDHEAD
     {
-
         public string EBDVersion
         {
             get;
@@ -18,13 +17,13 @@ namespace GRPlatForm.model
             get;
             set;
         }
-    public string EBDType
+         public string EBDType
             {
             get;
             set;
         }
 
-public SRC SRC
+        public SRC SRC
         {
             get;
             set;

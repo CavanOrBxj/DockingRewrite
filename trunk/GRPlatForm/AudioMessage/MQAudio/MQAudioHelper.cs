@@ -20,12 +20,12 @@ namespace GRPlatForm.AudioMessage.MQAudio
 
             this.PlayStateInterface = new AudioPlayState();
 
-            if (!AudioModel.TextState)
-            {
-                // AudioModel.PlayingTime = DateTime.Now.AddMinutes(0);
-                AudioModel.PlayingTime = DateTime.Now.AddSeconds(2);
-                AudioModel.PlayEndTime = DateTime.Now.AddMinutes(5);
-            }
+            //if (!AudioModel.TextState)
+            //{
+            //    // AudioModel.PlayingTime = DateTime.Now.AddMinutes(0);
+            //    AudioModel.PlayingTime = DateTime.Now.AddSeconds(2);
+            //    AudioModel.PlayEndTime = DateTime.Now.AddMinutes(5);
+            //}
         }
 
         public static string get_uft8(string unicodeString)

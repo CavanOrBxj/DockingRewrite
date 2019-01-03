@@ -109,6 +109,7 @@ namespace GRPlatForm.AudioMessage.SendMQ
                 itemType.name = "TsCmd_Type";
                 itemType.value = "播放视频";
                 InstallList.Add(itemType);
+
             }
             else
             {
@@ -120,10 +121,8 @@ namespace GRPlatForm.AudioMessage.SendMQ
                 itemType.name = "TsCmd_Type";
                 itemType.value = "TTS播放";
                 InstallList.Add(itemType);
-                Property itemTsCmd_PlayCount = new Property();    //2018-05-23
-                itemTsCmd_PlayCount.name = "TsCmd_PlayCount";
-                itemTsCmd_PlayCount.value = "10";
-                InstallList.Add(itemTsCmd_PlayCount);
+
+
 
                 value += "~向上移动~10~12~0";
             }
@@ -132,6 +131,11 @@ namespace GRPlatForm.AudioMessage.SendMQ
             itemTsCmd_Params.name = "TsCmd_Params";
             itemTsCmd_Params.value = value;
             InstallList.Add(itemTsCmd_Params);
+
+            Property itemTsCmd_PlayCount = new Property();    //2018-05-23
+            itemTsCmd_PlayCount.name = "TsCmd_PlayCount";
+            itemTsCmd_PlayCount.value = "10";
+            InstallList.Add(itemTsCmd_PlayCount);
 
             //打印MQ指令
             foreach (var Property in InstallList)

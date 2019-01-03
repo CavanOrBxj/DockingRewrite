@@ -105,8 +105,6 @@ namespace GRPlatForm.AudioMessage
                                 {
                                     thread.Abort();
                                     GC.Collect();
-                                  //  Application.DoEvents();
-                                    // th.Remove(uuid);
                                     if (SingletonInfo.GetInstance().DicPlayingThread.ContainsKey(AudioModel.AeraCodeReal))
                                     {
                                         SingletonInfo.GetInstance().DicPlayingThread.Remove(AudioModel.AeraCodeReal);
@@ -219,9 +217,7 @@ namespace GRPlatForm.AudioMessage
                             PlayStateInterface.Playing(TsCmd_ID, AudioModel.XmlFilaPath, "播放中", "2", "播发中");
                             ServerForm.SetManager("反馈播发中状态", Color.Green);
                         });
-
-
-
+                        
                         ServerForm.SetManager("播放中的反馈已发送", Color.Green);
 
                         break;

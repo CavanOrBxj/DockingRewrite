@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<EBD xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <EBDVersion>1.0</EBDVersion>
+  <EBDID>10450011600000003140102010000000000000009</EBDID>
+  <EBDType>EBRDTState</EBDType>
+  <SRC>
+    <EBRID>45001160000000314010201</EBRID>
+    <URL>http://192.168.3.115:7500</URL>
+  </SRC>
+  <EBDTime>2018-12-29 14:34:42</EBDTime>
+  <EBRDTState>
+    <EBRDT>
+      <RptTime>2018-12-29 14:34:42</RptTime>
+      <EBRID />
+      <StateCode>1</StateCode>
+      <StateDesc>开机/运行中</StateDesc>
+    </EBRDT>
+    <EBRDT>
+      <RptTime>2018-12-29 14:34:42</RptTime>
+      <EBRID />
+      <StateCode>1</StateCode>
+      <StateDesc>开机/运行中</StateDesc>
+    </EBRDT>
+  </EBRDTState>
+</EBD>

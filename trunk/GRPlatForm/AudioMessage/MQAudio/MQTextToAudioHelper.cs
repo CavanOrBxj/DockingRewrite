@@ -17,12 +17,12 @@ namespace GRPlatForm.AudioMessage.MQAudio
 
             this.PlayStateInterface = new AudioPlayState();
             
-            if (!AudioModel.TextState)
-            {
-                AudioModel.PlayingTime = DateTime.Now.AddMinutes(1);
-                AudioModel.PlayEndTime = DateTime.Now.AddMinutes(5);
-            }
-
+            //注释于20181227
+            //if (!AudioModel.TextState)
+            //{
+            //    AudioModel.PlayingTime = DateTime.Now.AddMinutes(1);
+            //    AudioModel.PlayEndTime = DateTime.Now.AddMinutes(5);
+            //}
         }
 
         /// <summary>
