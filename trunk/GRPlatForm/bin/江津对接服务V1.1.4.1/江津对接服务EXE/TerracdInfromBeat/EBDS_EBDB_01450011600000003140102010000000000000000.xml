@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Signature>
+  <Version>1.0</Version>
+  <RelatedEBD>
+    <EBDID>01450011600000003140102010000000000000000</EBDID>
+  </RelatedEBD>
+  <SignatureCert>
+    <CertType>01</CertType>
+    <IssuerID>
+    </IssuerID>
+    <CertSN>
+    </CertSN>
+  </SignatureCert>
+  <SignatureTime>63-27-6D-B0-2E-35-E5-40</SignatureTime>
+  <DigestAlgorithm>SM3</DigestAlgorithm>
+  <SignatureAlgorithm>SM2</SignatureAlgorithm>
+  <SignatureValue>&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;&#x0;</SignatureValue>
+</Signature>

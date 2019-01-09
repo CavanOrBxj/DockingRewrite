@@ -107,6 +107,7 @@ namespace GRPlatForm
                 Log.Instance.InitParam();
 
                 InitData();
+                this.Text= "应急广播消息服务_V"+ Application.ProductVersion;
             }
             catch (Exception ex)
             {

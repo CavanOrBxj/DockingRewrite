@@ -191,7 +191,7 @@
             this.MainMenuStrip = this.menuStrip;
             this.Name = "mainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "应急广播消息服务V1.8";
+            this.Text = "应急广播消息服务";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.mainForm_FormClosing);
             this.Load += new System.EventHandler(this.mainForm_Load);
             this.menuStrip.ResumeLayout(false);
